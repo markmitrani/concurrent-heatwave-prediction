@@ -1,0 +1,39 @@
+=== Original dataset: ===
+Dataset info
+ Metadata
+        Dimension names: Frozen({'time': 36530, 'bnds': 2, 'lon': 512, 'lat': 128})
+        Axis nums: lat->1, lon->2
+        Coordinates:
+  * time     (time) datetime64[ns] 2000-01-01T12:00:00 ... 2009-12-31T12:00:00
+  * lon      (lon) float64 -180.0 -179.3 -178.6 -177.9 ... 177.9 178.6 179.3
+  * lat      (lat) float64 0.3509 1.053 1.754 2.456 ... 87.37 88.07 88.77 89.46
+    height   float64 ...
+ Shapes and numbers
+        Dataset shape: (36530, 128, 512)
+        Nr. latitude entries: (128,), nr. longitude entries: (512,)
+        Latitude range: [0.350876526342549,89.4628215685774], longitude range: [-180.0,179.296875]
+        Spatial resolution: 0.701753052485091ºlat x 0.703125ºlon
+        Nr. timesteps: (36530,)
+        TAS range: [199.08851623535156,321.37139892578125], avg: 282.0890197753906
+
+Original resolution: 0.701753052485091°, 0.703125°
+Coarsening factors: lat=3, lon=3
+
+=== Processed dataset: ===
+Dataset info
+ Metadata
+        Dimension names: Frozen({'time': 9200, 'lon': 170, 'lat': 29, 'bnds': 2})
+        Axis nums: lat->1, lon->2
+        Coordinates:
+  * time       (time) datetime64[ns] 2000-06-01T12:00:00 ... 2009-08-31T12:00:00
+  * lon        (lon) float64 -179.3 -177.2 -175.1 -173.0 ... 173.0 175.1 177.2
+  * lat        (lat) float64 15.79 17.89 20.0 22.11 ... 68.42 70.53 72.63 74.74
+    height     (time) float64 2.0 2.0 2.0 2.0 2.0 2.0 ... 2.0 2.0 2.0 2.0 2.0
+    dayofyear  (time) int64 153 154 155 156 157 158 ... 238 239 240 241 242 243
+ Shapes and numbers
+        Dataset shape: (9200, 29, 170)
+        Nr. latitude entries: (29,), nr. longitude entries: (170,)
+        Latitude range: [15.789442899295267,74.7364426623246], longitude range: [-179.296875,177.1875]
+        Spatial resolution: 2.1052587903956983ºlat x 2.109375ºlon
+        Nr. timesteps: (9200,)
+        TAS range: [-19.27606201171875,19.62255859375], avg: -1.2166930218882044e-07

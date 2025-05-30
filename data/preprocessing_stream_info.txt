@@ -1,0 +1,64 @@
+=== Original dataset: ===
+Dataset info
+ Metadata
+        Dimension names: Frozen({'time': 36530, 'bnds': 2, 'lon': 512, 'lat': 128, 'plev': 1})
+        Axis nums: lat->2, lon->3
+        Coordinates:
+  * time     (time) datetime64[ns] 2000-01-01T12:00:00 ... 2009-12-31T12:00:00
+  * lon      (lon) float64 -180.0 -179.3 -178.6 -177.9 ... 177.9 178.6 179.3
+  * lat      (lat) float64 0.3509 1.053 1.754 2.456 ... 87.37 88.07 88.77 89.46
+  * plev     (plev) float64 2.5e+04
+ Shapes and numbers
+        Dataset shape: (36530, 1, 128, 512)
+        Nr. latitude entries: (128,), nr. longitude entries: (512,)
+        Latitude range: [0.350876526342549,89.4628215685774], longitude range: [-180.0,179.296875]
+        Spatial resolution: 0.701753052485091ºlat x 0.703125ºlon
+        Nr. timesteps: (36530,)
+        Stream function range: [-188255264.0,72702208.0], avg: -64929020.0
+
+Original resolution: 0.701753052485091°, 0.703125°
+Coarsening factors: lat=3, lon=3
+
+=== Testing to verify spatial mean operation ===
+Spatial mean shape: (9200, 1)
+Indexes where date is July 1st: [  30  950 1870 2790 3710 4630 5550 6470 7390 8310]
+['2000-07-01T12:00:00.000000000' '2000-07-01T12:00:00.000000000'
+ '2000-07-01T12:00:00.000000000' '2000-07-01T12:00:00.000000000'
+ '2000-07-01T12:00:00.000000000' '2000-07-01T12:00:00.000000000'
+ '2000-07-01T12:00:00.000000000' '2000-07-01T12:00:00.000000000'
+ '2000-07-01T12:00:00.000000000' '2000-07-01T12:00:00.000000000']
+Values in indexes (should be different):
+<xarray.DataArray 'stream' (time: 10, plev: 1)>
+array([[ -867995.56],
+       [-1250688.6 ],
+       [ 1326252.6 ],
+       [ 3070603.2 ],
+       [ 9651853.  ],
+       [ 6314222.5 ],
+       [ 4212000.5 ],
+       [ 3938948.2 ],
+       [-3059300.  ],
+       [ 7375549.  ]], dtype=float32)
+Coordinates:
+  * time       (time) datetime64[ns] 2000-07-01T12:00:00 ... 2000-07-01T12:00:00
+  * plev       (plev) float64 2.5e+04
+    dayofyear  (time) int64 183 183 183 183 183 183 183 183 183 183
+
+=== Processed dataset: ===
+Dataset info
+ Metadata
+        Dimension names: Frozen({'time': 9200, 'lon': 170, 'lat': 29, 'plev': 1, 'bnds': 2})
+        Axis nums: lat->2, lon->3
+        Coordinates:
+  * time       (time) datetime64[ns] 2000-06-01T12:00:00 ... 2009-08-31T12:00:00
+  * lon        (lon) float64 -179.3 -177.2 -175.1 -173.0 ... 173.0 175.1 177.2
+  * lat        (lat) float64 15.79 17.89 20.0 22.11 ... 68.42 70.53 72.63 74.74
+  * plev       (plev) float64 2.5e+04
+    dayofyear  (time) int64 153 154 155 156 157 158 ... 238 239 240 241 242 243
+ Shapes and numbers
+        Dataset shape: (9200, 1, 29, 170)
+        Nr. latitude entries: (29,), nr. longitude entries: (170,)
+        Latitude range: [15.789442899295267,74.7364426623246], longitude range: [-179.296875,177.1875]
+        Spatial resolution: 2.1052587903956983ºlat x 2.109375ºlon
+        Nr. timesteps: (9200,)
+        Stream function range: [-57003592.0,62834448.0], avg: -0.0035558692179620266

@@ -1,0 +1,18 @@
+X_reduced shape: (40, 9200)
+Archetypal Analysis finished:
+ - XC shape: (40, 4)
+ - S shape: (4, 9200)
+ - C shape: (9200, 4)
+ - SSE: 2.453802038710086e+21
+ - Variance explained: 0.9839180386866124
+XC_full shape: (4930, 4)
+
+X_reduced shape: (40, 9200)
+Archetypal Analysis finished:
+ - XC shape: (40, 6)
+ - S shape: (6, 9200)
+ - C shape: (9200, 6)
+ - SSE: 2.267663586199188e+21
+ - Variance explained: 0.9851379705902421
+XC_full shape: (4930, 6)
+
