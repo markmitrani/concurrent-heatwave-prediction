@@ -10,7 +10,7 @@
 module load miniconda
 conda activate netcdf_env
 
-REPO_DIR="~/concurrent-heatwave-prediction"
+REPO_DIR="$HOME/concurrent-heatwave-prediction"
 
 # Source the shared config
 source "${REPO_DIR}/config.env"
@@ -19,7 +19,7 @@ source "${REPO_DIR}/config.env"
 cp "${REPO_DIR}${SCRIPT_AA_DIR}/${AA_SCRIPT}" $TMPDIR
 
 # Copy previously saved svd.hdf5 to temp
-cp "${REPO_DIR}${DATA_DIR}${SVD_FILE}" $TMPDIR
+cp "${REPO_DIR}${DATA_DIR}/${SVD_FILE}" $TMPDIR
 
 # Move to temp space
 cd $TMPDIR

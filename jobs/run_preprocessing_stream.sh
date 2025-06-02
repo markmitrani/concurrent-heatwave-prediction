@@ -10,7 +10,7 @@
 module load miniconda
 conda activate netcdf_env
 
-REPO_DIR="~/concurrent-heatwave-prediction"
+REPO_DIR="$HOME/concurrent-heatwave-prediction"
 
 # Source shared config
 source "${REPO_DIR}/config.env"

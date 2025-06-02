@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import h5py
 import xarray as xr
@@ -5,12 +6,16 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 
+repo_dir = "concurrent-heatwave-prediction"
+data_dir = os.path.join("concurrent-heatwave-prediction", "data")
+plots_dir = os.path.join("concurrent-heatwave-prediction", "plots")
+
 # import both nc's
-stream_path = "data/lentis_stream250_JJA_2deg_101_deseason_spatialsub.nc"
+stream_path = os.path.join(data_dir, 'lentis_stream250_JJA_2deg_101_deseason_smsubd_sqrtcosw.nc')
 dataset_stream = xr.open_dataset(stream_path)
 # dataset_stream.drop_dims("plev")
 
-tas_path = "data/lentis_tas_JJA_2deg_101_deseason.nc"
+tas_path = os.path.join(data_dir, 'lentis_tas_JJA_2deg_101_deseason.nc')
 dataset_tas = xr.open_dataset(tas_path)
 
 # sanity check part 1: these results should be the same in part 2
@@ -25,7 +30,7 @@ print(dataset_comb.isel(time=123)['tas'].isel(lon=0, lat=0).values)
 print(dataset_comb.isel(time=74)['tas'].isel(lon=4, lat=8).values)
 
 # get S_PCHA from archetypes file
-with h5py.File('data/pcha_results_8a.hdf5', 'r') as f: # run from mmi393 directory or gives error
+with h5py.File(os.path.join(data_dir, 'pcha_results_8a.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         S_PCHA = f['/S_PCHA'][:]
 
 
@@ -92,6 +97,6 @@ for i, ax in enumerate(axes):
       ax.set_ylabel("Latitude")
 
 # save figure(s)
-fname = f"plots/composite_{n_arch}_arch.png"
+fname = os.path.join(plots_dir, f"composite_{n_arch}_arch.png")
 fig.savefig(fname, dpi=300, bbox_inches='tight')
 plt.close(fig)

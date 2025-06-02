@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import numpy as np
 import h5py
 import xarray as xr
@@ -8,16 +9,20 @@ import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 
 def main(plot_anomalies):
-    with h5py.File('data/pcha_results_8a.hdf5', 'r') as f: # run from mmi393 directory or gives error
+    repo_dir = "concurrent-heatwave-prediction"
+    data_dir = os.path.join("concurrent-heatwave-prediction", "data")
+    plots_dir = os.path.join("concurrent-heatwave-prediction", "plots")
+
+    with h5py.File(os.path.join(data_dir, 'pcha_results_8a.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         XC = f['/XC'][:]
-    with h5py.File('data/svd_40.hdf5', 'r') as f: # run from mmi393 directory or gives error
+    with h5py.File(os.path.join(data_dir, 'svd_40.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         u = f['/u'][:]
 
-    indexes = np.load("data/z_mapping.npz")
+    indexes = np.load(os.path.join(data_dir, 'z_mapping.npz'))
     lon_idx = indexes["lon"]
     lat_idx = indexes["lat"]
 
-    lentis_path = "data/lentis_stream250_JJA_2deg_101_deseason_spatialsub.nc"
+    lentis_path = os.path.join(data_dir, 'lentis_stream250_JJA_2deg_101_deseason_spatialsub.nc')
 
     # Transformation from low rank SVD representation to full size
     XC_full = u @ XC
@@ -118,7 +123,7 @@ def main(plot_anomalies):
 
     # save figure(s)
     flag_string = "_anom" if plot_anomalies else ""
-    fname = f"plots/archetypes_{nr_archetypes}_on_map{flag_string}.png"
+    fname = os.path.join(plots_dir ,f"archetypes_{nr_archetypes}_on_map{flag_string}.png")
     fig.savefig(fname, dpi=300, bbox_inches='tight')
     plt.close(fig)
 

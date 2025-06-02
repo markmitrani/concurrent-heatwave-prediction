@@ -36,10 +36,10 @@ def plot_svd(k, explained_variance_ratio, sse):
     axs[1].grid(False)
 
     plt.tight_layout()
-    fig.savefig("svd_plot.png", dpi=300, bbox_inches='tight')
+    fig.savefig(f"svd_plot_{k}.png", dpi=300, bbox_inches='tight')
     plt.close(fig)
 
-filename = "lentis_stream250_JJA_2deg_101_deseason_spatialsub.nc"
+filename = "lentis_stream250_JJA_2deg_101_deseason_smsubd_sqrtcosw.nc"
 
 # read nc file
 ds = xr.open_dataset(filename, engine="netcdf4", chunks='auto')
@@ -69,7 +69,7 @@ print("N = number of examples")
 print(f"SVD will be performed on: {X.shape}")
 
 # perform SVD
-k = 60
+k = 400
 u, s, v = da.linalg.svd_compressed(X, k, compute=True)
 
 # check SVD outputs' shapes

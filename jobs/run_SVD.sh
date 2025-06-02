@@ -10,7 +10,7 @@
 module load miniconda
 conda activate netcdf_env
 
-REPO_DIR="~/concurrent-heatwave-prediction"
+REPO_DIR="$HOME/concurrent-heatwave-prediction"
 
 # Source the shared config
 source "${REPO_DIR}/config.env"
@@ -29,6 +29,6 @@ python ${SVD_SCRIPT}
 # Copy back outputs to home
 cp ${SVD_FILE} ${REPO_DIR}${DATA_DIR}
 cp ${ZMAP_FILE} ${REPO_DIR}${DATA_DIR}
-cp ${SVD_PLOT_FILE} ${REPO_DIR}${DATA_DIR}
+cp ${SVD_PLOT_FILE} ${REPO_DIR}${PLOTS_DIR}
 
 echo "Finished. Output copied to ${REPO_DIR}${DATA_DIR}"
