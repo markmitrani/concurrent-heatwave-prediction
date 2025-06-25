@@ -20,7 +20,8 @@ print(f"X_reduced shape: {X_reduced.shape}")
 
 # run PCHA
 n = 8
-XC, S_PCHA, C, SSE, varexpl = PCHA(X_reduced, noc=n, delta=0.1)
+delta = 0.0 # inflation factor for the convex hull
+XC, S_PCHA, C, SSE, varexpl = PCHA(X_reduced, noc=n, delta=delta)
 
 print("Archetypal Analysis finished:")
 print(" - XC shape:", XC.shape)
@@ -44,7 +45,7 @@ print("Sum of C rows")
 print(np.sum(C, axis=0))
 print(np.where(S_PCHA.T == C))
 """
-with h5py.File(f'pcha_results_{n}a.hdf5', 'w') as f:
+with h5py.File(f'pcha_results_{n}a_0d.hdf5', 'w') as f:
     # factor scores (reconstructed components)
     f.create_dataset('XC',      data=XC)
     # coefficients of each archetype, sums to 1 per example

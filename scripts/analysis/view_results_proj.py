@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 def main(plot_anomalies):
     repo_dir = "concurrent-heatwave-prediction"
     data_dir = os.path.join("concurrent-heatwave-prediction", "data")
-    data_dir = os.path.join(data_dir, "lat30-60")
+    data_dir = os.path.join(data_dir, "deseason_smsub_sqrtcosw")
     plots_dir = os.path.join("concurrent-heatwave-prediction", "plots")
-    plots_dir = os.path.join(plots_dir, "lat30-60")
+    plots_dir = os.path.join(plots_dir, "deseason_smsub_sqrtcosw")
 
-    with h5py.File(os.path.join(data_dir, 'pcha_results_8a.hdf5'), 'r') as f: # run from mmi393 directory or gives error
+    with h5py.File(os.path.join(data_dir, 'pcha_results_8a_0d.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         XC = f['/XC'][:]
     with h5py.File(os.path.join(data_dir, 'svd_40.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         u = f['/u'][:]
@@ -24,6 +24,7 @@ def main(plot_anomalies):
     lon_idx = indexes["lon"]
     lat_idx = indexes["lat"]
 
+    # Only used if plotting anomalies
     lentis_path = os.path.join(data_dir, 'lentis_stream250_JJA_2deg_101_deseason_smsubd_sqrtcosw_lat3060.nc')
 
     # Transformation from low rank SVD representation to full size

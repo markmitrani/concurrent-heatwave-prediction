@@ -22,7 +22,8 @@ def downsample_spatial_resolution(ds):
     return ds_coarse
 
 def slice_region(ds):
-    latmin, latmax, lonmin, lonmax = (30, 60, -180, 180)
+    # two configs: 15-75 vs. 30-60
+    latmin, latmax, lonmin, lonmax = (15, 75, -180, 180)
 
     if np.diff(ds.lat)[0] < 0:
         # Spatial cropping, latitude is stored decreasing, longitude increasing
@@ -132,15 +133,16 @@ def sanity_check(ds, var):
 
 def main():
     filename_incl_path = "/scistor/ivm/data_catalogue/climate_models/lentis/day/stream250/stream_250_h_day_NH_ensemble101.nc"
-    output_filename = "lentis_stream250_JJA_2deg_101_deseason_smsubd_sqrtcosw_lat3060.nc"
+    output_filename = "lentis_stream250_JJA_2deg_101_deseason_smsub_sqrtcosw.nc"
     
     dataset = xr.open_dataset(filename_incl_path)
     print("=== Original dataset: ===")
     sanity_check(dataset, 'stream')
     
+    # make sure any changes made here are reflected in the filename
     dataset = pick_summer_months(dataset)
     dataset = downsample_spatial_resolution(dataset)
-    dataset = slice_region(dataset)
+    dataset = slice_region(dataset) 
     dataset = deseasonalize(dataset)
     dataset = subtract_spatial_mean(dataset)
     dataset = sqrt_cos_weighting(dataset)

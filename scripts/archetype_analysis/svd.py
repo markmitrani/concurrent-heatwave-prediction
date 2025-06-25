@@ -39,7 +39,7 @@ def plot_svd(k, explained_variance_ratio, sse):
     fig.savefig(f"svd_plot_{k}.png", dpi=300, bbox_inches='tight')
     plt.close(fig)
 
-filename = "lentis_stream250_JJA_2deg_101_deseason_smsubd_sqrtcosw_lat3060.nc"
+filename = "lentis_stream250_JJA_2deg_101_deseason_smsub_sqrtcosw.nc"
 
 # read nc file
 ds = xr.open_dataset(filename, engine="netcdf4", chunks='auto')

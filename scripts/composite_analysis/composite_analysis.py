@@ -67,17 +67,17 @@ def plot_composites(composite_da, plots_dir, method, varname='tas'):
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
 
-    fname = os.path.join(plots_dir, f"composite_{n_arch}_arch_{method}.png")
+    fname = os.path.join(plots_dir, f"composite_{n_arch}_arch_0d_{method}.png")
     fig.savefig(fname, dpi=300, bbox_inches='tight')
     plt.close(fig)
 
 def main(method):
     repo_dir = "concurrent-heatwave-prediction"
-    data_dir = os.path.join(repo_dir, "data", "lat30-60")
-    plots_dir = os.path.join(repo_dir, "plots", "lat30-60")
+    data_dir = os.path.join(repo_dir, "data", "deseason_smsub_sqrtcosw")
+    plots_dir = os.path.join(repo_dir, "plots", "deseason_smsub_sqrtcosw")
 
     tas_path = os.path.join(data_dir, 'lentis_tas_JJA_2deg_101_deseason.nc')
-    pcha_path = os.path.join(data_dir, 'pcha_results_8a.hdf5')
+    pcha_path = os.path.join(data_dir, 'pcha_results_8a_0d.hdf5')
 
     dataset_tas = xr.open_dataset(tas_path)
 
