@@ -7,21 +7,24 @@
 #SBATCH --mem=4G  # 4GB should be enough for package installation
 
 # Load module
-module load miniconda
+module load miniconda/23
+conda init bash
+source ~/.bashrc
 
 #conda update -n base -c defaults conda
 #conda config --set channel_priority strict
-conda config --set solver libmamba
 
 # Create Conda environment (if not exists)
-conda create -y --name netcdf_env --file requirements_conda.txt python=3.9 
+conda create -y --name jupyter_env --file concurrent-heatwave-prediction/requirements_conda.txt python=3.9 
 
 # Activate the environment
-conda activate netcdf_env
+conda activate jupyter_env
 # Install packages from requirements files
-#conda install --file requirements_conda.txt --solver=libmamba
+conda install --file concurrent-heatwave-prediction/requirements_conda.txt
 # py_pcha only available in pip, install this after conda reqs
-pip install -r requirements_pip.txt --upgrade-strategy only-if-needed
+pip install -r concurrent-heatwave-prediction/requirements_pip.txt --upgrade-strategy only-if-needed
+# pytorch with cuda 11.8 is best installed directly
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # List installed packages (sanity check)
 conda list
