@@ -18,4 +18,4 @@ PORT=8888
 HOSTNAME=$(hostname)
 
 # Start the Jupyter notebook server
-jupyter notebook --no-browser --ip=127.0.0.1 --port=8888
+jupyter notebook --no-browser --ip=127.0.0.1 --port=4444
