@@ -68,9 +68,10 @@ def main():
     assert torch.cuda.is_available(), "CUDA is not available. Please run on a GPU-enabled machine."
 
     # Experimental variables
-    lead_time = 0
-    batch_size = 64
-    num_epochs = 100
+    input_len = 5
+    lead_time = 5
+    batch_size = 16
+    num_epochs = 20
     num_classes = 8
 
     # Optimizer parameters
@@ -85,7 +86,7 @@ def main():
     S_PCHA_path = "data/pcha.hdf5"
     dataset_comb = data.load_datasets(stream_path, tas_path)
 
-    x, y, kept_time_indices = data.construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time)
+    x, y, kept_time_indices = data.construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, input_len)
 
     x_train, y_train, x_val, y_val = data.split_data(x,y) # TODO make sure the split happens at exactly where one lentis ends and another begins
 
@@ -95,7 +96,7 @@ def main():
     pretrained_checkpoint_url = "https://earthformer.s3.amazonaws.com/pretrained_checkpoints/earthformer_earthnet2021.pt"
     save_dir = "pretrained/"
 
-    EFCmodel, compatible = model.build_classifier(num_classes, earthformer_config, pretrained_checkpoint_url, save_dir) # TODO have to include out_c and input_seq_length as variables
+    EFCmodel, compatible = model.build_classifier(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir) # TODO have to include out_c and input_seq_length as variables
 
     EFCmodel.to("cuda")
 

@@ -12,43 +12,8 @@ def load_datasets(stream_path, tas_path):
     dataset_tas = xr.open_dataset(tas_path)
     dataset_comb = dataset_stream.assign(tas=dataset_tas['tas'])
     return dataset_comb
-"""
-TODO use this version for x_input that contains a time sequence.
 
-def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, input_seq):
-    with h5py.File(S_PCHA_path, 'r') as f:
-        S_PCHA = f['/S_PCHA'][:]
-
-    arch_indices = np.argmax(S_PCHA, axis=0)
-    arch_da = xr.DataArray(arch_indices, dims="time", coords={"time": dataset_comb.time})
-    arch_labels = arch_da.values
-
-    stream = dataset_comb['stream'].squeeze('plev').values
-    tas = dataset_comb['tas'].values
-    x_np = np.stack([stream, tas], axis=-1)
-    x_tensor = torch.from_numpy(x_np).float()
-
-    x_tensor = interpolate_tensor(x_tensor)
-    time = dataset_comb['time'].values
-
-    x_list, y_list, kept_time_indices = [], [], []
-
-    for t in range(input_seq, len(time) - lead_time):
-        target_time = time[t] + np.timedelta64(lead_time, 'D')
-        if time[t + lead_time] == target_time:
-            seq_times = time[t - input_seq + 1: t + 1]
-            if all(seq_time.astype('datetime64[Y]') == seq_times[-1].astype('datetime64[Y]') for seq_time in seq_times):
-                x_seq = x_tensor[t - input_seq + 1: t + 1]
-                x_list.append(x_seq)
-                y_list.append(arch_labels[t + lead_time])
-                kept_time_indices.append(t)
-
-    x_final = torch.stack(x_list)                       # shape: (N, T, H, W, C)
-    y_final = torch.tensor(y_list, dtype=torch.long)
-
-    return x_final, y_final, kept_time_indices
-"""
-def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time):
+def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, input_len = 1):
     with h5py.File(S_PCHA_path, 'r') as f:
         S_PCHA = f['/S_PCHA'][:]
 
@@ -69,11 +34,21 @@ def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time):
     for t in range(len(time) - lead_time):
         target_time = time[t] + np.timedelta64(lead_time, 'D')
         if time[t + lead_time] == target_time:
-            x_list.append(x_tensor[t].unsqueeze(0))     # (1, H, W, C)
-            y_list.append(arch_labels[t + lead_time]-1)
+            this_x_list = []
+            for i in range (input_len):
+              if i == 0:
+                  this_x_list.append(x_tensor[t])
+              else:
+                  x_prev_time = time[t] - i*np.timedelta64(lead_time, 'D')
+                  if (t - i >= 0) and time[t - i] == x_prev_time:
+                      this_x_list.append(x_tensor[t-i])
+                  else:
+                      this_x_list.append(torch.zeros_like(x_tensor[t]))
+            x_list.append(torch.stack(this_x_list)) # (T, H, W, C)
+            y_list.append(arch_labels[t + lead_time])
             kept_time_indices.append(t)
 
-    x_final = torch.stack(x_list)                       # shape: (N, 1, H, W, C)
+    x_final = torch.stack(x_list)                       # shape: (N, T, H, W, C)
     y_final = torch.tensor(y_list, dtype=torch.long)
 
     return x_final, y_final, kept_time_indices

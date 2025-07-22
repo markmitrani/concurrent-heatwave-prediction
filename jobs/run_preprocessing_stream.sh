@@ -27,6 +27,6 @@ python --version
 python ${PRE_STREAM_SCRIPT}
 
 # 3: Copy the output file back to home directory
-cp ${STREAM_FILE} "${REPO_DIR}${DATA_DIR}"
+# cp ${STREAM_FILE} "${REPO_DIR}${DATA_DIR}"
 
 echo "Finished. Output copied to ${REPO_DIR}${DATA_DIR}"

@@ -22,8 +22,13 @@ def save_artifacts(model, optimizer, train_hist, val_hist, output_dir="outputs")
     with open(os.path.join(out_dir, "val_loss.json"), "w") as f:
         json.dump(val_hist, f)
 
+    # Better styling
+    plt.style.use("ggplot")
+    plt.rcParams['figure.figsize'] = (16,9)
+    plt.rcParams['figure.dpi'] = 600
+
     # Save loss curve plot
-    plt.figure(figsize=(8, 5))
+    # plt.figure(figsize=(8, 5))
     plt.plot(train_hist, label='Train Loss')
     plt.plot(val_hist, label='Val Loss')
     plt.xlabel('Epoch')
