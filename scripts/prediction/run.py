@@ -1,4 +1,6 @@
+from datetime import datetime
 import math
+import os
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -6,6 +8,7 @@ import torch.optim as optim
 import data
 import model
 import utils
+import matplotlib.pyplot as plt
 
 # source: https://github.com/amazon-science/earth-forecasting-transformer/blob/main/scripts/cuboid_transformer/earthnet_w_meso/earthformer_earthnet_v1.yaml
 earthformer_config = {
@@ -67,11 +70,13 @@ earthformer_config = {
 def main():
     assert torch.cuda.is_available(), "CUDA is not available. Please run on a GPU-enabled machine."
 
+    tag = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     # Experimental variables
     input_len = 5
     lead_time = 5
     batch_size = 16
-    num_epochs = 20
+    num_epochs = 200
     num_classes = 8
 
     # Optimizer parameters
@@ -109,19 +114,21 @@ def main():
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
                             lr=adamw_lr, betas=betas, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, utils.get_lr_lambda(num_epochs//5, num_epochs))
-    criterion = nn.CrossEntropyLoss()
-    train_loss_history, val_loss_history = [], []
+    criterion = nn.MSELoss()
+    train_loss_history, val_loss_history, lr_history = [], [], []
 
     for epoch in range(num_epochs):
         EFCmodel.train()
         total_train_loss = 0.0
         with tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}") as prog:
+            current_lr = optimizer.param_groups[0]['lr']
+            lr_history.append(current_lr)
             for batch_x, batch_y in prog:
                 batch_x = batch_x.to("cuda")
                 batch_y = batch_y.to("cuda")
                 optimizer.zero_grad()
                 logits = EFCmodel(batch_x)
-                loss = criterion(logits, batch_y)
+                loss = criterion(logits.squeeze(), batch_y)
                 loss.backward()
                 optimizer.step()
                 total_train_loss += loss.item()
@@ -134,28 +141,57 @@ def main():
         # Validation
         EFCmodel.eval()
         total_val_loss = 0.0
-        total_correct = 0
-        total_samples = 0
+        # total_correct = 0
+        # total_samples = 0
+
+        # if epoch % 10 == 0:
+        all_preds = []
+        all_targets = []
+
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
                 batch_x = batch_x.to("cuda")
                 batch_y = batch_y.to("cuda")
                 logits = EFCmodel(batch_x)
-                loss = criterion(logits, batch_y)
+                loss = criterion(logits.squeeze(), batch_y)
                 total_val_loss += loss.item()
-                
-                preds = torch.argmax(logits, dim=1)
-                total_correct += (preds == batch_y).sum().item()
-                total_samples += batch_y.size(0)
+
+                # if epoch % 10 == 0:
+                all_preds.append(logits.squeeze().cpu())
+                all_targets.append(batch_y.cpu())
+            
+                # preds = torch.argmax(logits, dim=1)
+                # total_correct += (preds == batch_y).sum().item()
+                # total_samples += batch_y.size(0)
+        preds_flat = torch.cat(all_preds).numpy()
+        targets_flat = torch.cat(all_targets).numpy()
+
+        print(preds_flat[:1000])
+        print(targets_flat[:1000])
+    
+        if epoch % 10 == 0:
+            utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
+            plt.figure()
+            plt.scatter(targets_flat, preds_flat, alpha=0.5)
+            plt.xlabel("True Participation Probability")
+            plt.ylabel("Predicted Probability")
+            plt.title(f"Predicted vs True (Epoch {epoch+1})")
+            plt.grid(True)
+            
+            out_dir = os.path.join("outputs", tag)
+            os.makedirs(out_dir, exist_ok=True)
+
+            plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
+            plt.close()
                 
         avg_val_loss = total_val_loss / len(val_loader)
         val_loss_history.append(avg_val_loss)
 
-        val_acc = total_correct / total_samples if total_samples > 0 else 0.0
+        # val_acc = total_correct / total_samples if total_samples > 0 else 0.0
 
-        print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}, Val Accuracy = {val_acc:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}")
 
-    utils.save_artifacts(EFCmodel, optimizer, train_loss_history, val_loss_history)
+    utils.save_artifacts(EFCmodel, optimizer, train_loss_history, val_loss_history, lr_history, tag)
 
 if __name__ == "__main__":
     main()

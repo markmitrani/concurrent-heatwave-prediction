@@ -13,7 +13,55 @@ def load_datasets(stream_path, tas_path):
     dataset_comb = dataset_stream.assign(tas=dataset_tas['tas'])
     return dataset_comb
 
+# Modified target construction method for regression task
 def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, input_len = 1):
+    with h5py.File(S_PCHA_path, 'r') as f:
+        S_PCHA = f['/S_PCHA'][:]
+
+    print("S_PCHA shapes:")
+    print(S_PCHA.shape)
+    # for i in range(S_PCHA.shape[0]):
+    #     print(f"Arch {i} mean: {S_PCHA[i].mean()}")
+    #     print(f"Arch {i} variance: {S_PCHA[i].var()}")
+    archetype_index = 0
+    arch_probs = S_PCHA[archetype_index]  # shape: (time,)
+    target_da = xr.DataArray(arch_probs, dims="time", coords={"time": dataset_comb.time})
+    targets = target_da.values
+
+    stream = dataset_comb['stream'].squeeze('plev').values
+    tas = dataset_comb['tas'].values
+    x_np = np.stack([stream, tas], axis=-1)
+    x_tensor = torch.from_numpy(x_np).float()
+
+    x_tensor = interpolate_tensor(x_tensor)
+
+    time = dataset_comb['time'].values
+    x_list, y_list, kept_time_indices = [], [], []
+
+    for t in range(len(time) - lead_time):
+        target_time = time[t] + np.timedelta64(lead_time, 'D')
+        if time[t + lead_time] == target_time:
+            this_x_list = []
+            for i in range (input_len):
+              if i == 0:
+                  this_x_list.append(x_tensor[t])
+              else:
+                  x_prev_time = time[t] - i*np.timedelta64(lead_time, 'D')
+                  if (t - i >= 0) and time[t - i] == x_prev_time:
+                      this_x_list.append(x_tensor[t-i])
+                  else:
+                      this_x_list.append(torch.zeros_like(x_tensor[t]))
+            x_list.append(torch.stack(this_x_list)) # (T, H, W, C)
+            y_list.append(targets[t + lead_time])
+            kept_time_indices.append(t)
+
+    x_final = torch.stack(x_list)                       # shape: (N, T, H, W, C)
+    y_final = torch.tensor(y_list, dtype=torch.float)
+
+    return x_final, y_final, kept_time_indices
+
+"""
+def construct_targets_and_interpolate_old(dataset_comb, S_PCHA_path, lead_time, input_len = 1):
     with h5py.File(S_PCHA_path, 'r') as f:
         S_PCHA = f['/S_PCHA'][:]
 
@@ -52,7 +100,7 @@ def construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, inpu
     y_final = torch.tensor(y_list, dtype=torch.long)
 
     return x_final, y_final, kept_time_indices
-
+"""
 
 def interpolate_tensor(x_tensor, target_size=(128, 128)):
     x_tensor_perm = x_tensor.permute(0, 3, 1, 2)

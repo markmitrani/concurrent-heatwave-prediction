@@ -5,9 +5,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import torch
 
-def save_artifacts(model, optimizer, train_hist, val_hist, output_dir="outputs"):
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    out_dir = os.path.join(output_dir, timestamp)
+def save_artifacts(model, optimizer, train_hist, val_hist, lr_hist, tag, output_dir="outputs"):
+    out_dir = os.path.join(output_dir, tag)
     os.makedirs(out_dir, exist_ok=True)
 
     # Save model checkpoint
@@ -24,13 +23,15 @@ def save_artifacts(model, optimizer, train_hist, val_hist, output_dir="outputs")
 
     # Better styling
     plt.style.use("ggplot")
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["mathtext.fontset"] = "dejavuserif"
     plt.rcParams['figure.figsize'] = (16,9)
     plt.rcParams['figure.dpi'] = 600
 
     # Save loss curve plot
     # plt.figure(figsize=(8, 5))
-    plt.plot(train_hist, label='Train Loss')
-    plt.plot(val_hist, label='Val Loss')
+    plt.plot(train_hist, color='darkturquoise', label='Train Loss')
+    plt.plot(val_hist, color='yellow', label='Val Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training vs Validation Loss')
@@ -38,6 +39,37 @@ def save_artifacts(model, optimizer, train_hist, val_hist, output_dir="outputs")
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(os.path.join(out_dir, "loss_curve.png"))
+    plt.close()
+
+    plt.plot(lr_hist, color='coral')
+    plt.xlabel('Epoch')
+    plt.ylabel('Learning Rate')
+    plt.title('Learning Rate over Epochs')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, "lr_curve.png"))
+    plt.close()
+
+def plot_pred_vs_true(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
+    out_dir = os.path.join(output_dir, tag)
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Better styling
+    plt.style.use("ggplot")
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["mathtext.fontset"] = "dejavuserif"
+    plt.rcParams['figure.figsize'] = (16,9)
+    plt.rcParams['figure.dpi'] = 600
+
+    plt.figure()
+    plt.scatter(true_list, pred_list, alpha=0.5, color='darkturquoise')
+    plt.xlabel("True Participation Probability")
+    plt.ylabel("Predicted Probability")
+    plt.title(f"Predicted vs True (Epoch {epoch+1})")
+    plt.tight_layout()
+    plt.grid(True)
+
+    plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
     plt.close()
 
 def get_lr_lambda(warmup_steps, total_steps):

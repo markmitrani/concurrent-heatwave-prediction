@@ -24,7 +24,8 @@ def build_earthformer_model(config, input_len, checkpoint_url, save_dir):
 
 def build_classifier(num_classes, input_len, config, checkpoint_url, save_dir):
     base_model, compatible = build_earthformer_model(config, input_len, checkpoint_url, save_dir)
-    model = EarthformerClassifier(base_model, num_classes)
+    # model = EarthformerClassifier(base_model, num_classes)
+    model = EarthformerPredictor(base_model)
     return model, compatible
 
 class EarthformerClassifier(nn.Module):
@@ -40,3 +41,19 @@ class EarthformerClassifier(nn.Module):
         x = self.pool(x).squeeze()
         logits = self.classifier(x)        
         return logits
+
+class EarthformerPredictor(nn.Module):
+    def __init__(self, base_model):
+        super().__init__()
+        self.model = base_model
+        self.pool = nn.AdaptiveAvgPool3d((1, 1, 1)) # Pool over T, H, W
+        self.fc = nn.Linear(self.model.target_shape[-1], 1) # (nr. channels) -> (nr. classes)
+        nn.init.xavier_uniform_(self.fc.weight)
+        nn.init.uniform_(self.fc.bias)
+
+    def forward(self, x):
+        x = self.model(x)
+        x = x.permute(0, 4, 1, 2, 3)
+        x = self.pool(x).squeeze()
+        x = self.fc(x)
+        return x

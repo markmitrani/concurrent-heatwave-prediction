@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=gpu_test
+#SBATCH --job-name=earthformer_train
 #SBATCH --partition=defq             
 #SBATCH --gpus=1                    # Is 1 GPU enough?
 #SBATCH --cpus-per-gpu=4            
 #SBATCH --mem-per-gpu=8G            # Allocate 8GB RAM per GPU
-#SBATCH --time=01:00:00             # Job time needs to be matched to training
+#SBATCH --time=24:00:00             # Job time needs to be matched to training
 #SBATCH --output=earthformer_training-%j.log    # Output to a log file
 
 module load miniconda/23
