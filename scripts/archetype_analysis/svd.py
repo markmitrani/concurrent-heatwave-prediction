@@ -17,7 +17,7 @@ def plot_svd(k, explained_variance_ratio, sse):
 
     # Top panel for Explained Variance
     axs[0].plot(k_vals, explained_variance_ratio, color=blue, **marker_style, label='SVD')
-    axs[0].set_ylabel("Explained variance")
+    axs[0].set_ylabel("Explained Variance")
     #axs[0].set_ylim(0.9, 1.01)
     axs[0].legend(frameon=False)
     axs[0].xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -25,8 +25,8 @@ def plot_svd(k, explained_variance_ratio, sse):
 
     # Bottom panel for SSE
     axs[1].plot(k_vals, sse, color=blue, **marker_style, label='SVD')
-    axs[1].set_xlabel("PC number")
-    axs[1].set_ylabel("Sum of squares error")
+    axs[1].set_xlabel("PC Number")
+    axs[1].set_ylabel("Mean Squared Error")
 
     # Formatting y-axis as scientific notation ×10^x
     axs[1].yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
@@ -86,6 +86,7 @@ explained_variance_ratio = explained_variance / total_variance
 
 # 3. SSE for rank-k approximations (sum of squared errors)
 sse = np.cumsum(explained_variance[::-1])[::-1]
+mse = sse / (X.shape[1] * X.shape[0]) # n_elements = n_samples * n_features
 
 explvar = explained_variance.compute()
 evr = explained_variance_ratio.compute()
