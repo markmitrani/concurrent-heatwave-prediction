@@ -35,9 +35,9 @@ earthformer_config = {
     "separate_global_qkv": True,
     "global_dim_ratio": 1,
 
-    "attn_drop": 0.1,
-    "proj_drop": 0.1,
-    "ffn_drop": 0.1,
+    "attn_drop": 0.0,
+    "proj_drop": 0.0,
+    "ffn_drop": 0.0,
     "num_heads": 4,
 
     "ffn_activation": "gelu",
@@ -81,7 +81,7 @@ def main():
     archetype_index = 3
 
     # Optimizer parameters
-    adam_learning_rate = 5e-4
+    adam_lr = 5e-4
     adamw_lr = 1e-3
     betas = (0.9, 0.999)
     weight_decay = 1e-5
@@ -97,7 +97,9 @@ def main():
 
     x_train, y_train, x_val, y_val = data.split_data(x,y)
 
-    train_loader, val_loader = data.get_dataloaders(x_train, y_train, x_val, y_val, batch_size)
+    x_train, x_val, min_vals, max_vals = data.minmax_scale(x_train, x_val)
+
+    train_loader, val_loader = data.get_dataloaders(x_train[:10], y_train[:10], x_train[:10], y_train[:10], batch_size)
 
     # train_loader=train_loader[:100]
     # val_loader=val_loader[:100]
@@ -110,11 +112,11 @@ def main():
 
     EFCmodel.to("cuda")
 
-    # optimizer = optim.Adam(filter(lambda p: p.requires_grad, EFCmodel.parameters()), lr=learning_rate)
-    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
-                            lr=adamw_lr, betas=betas, weight_decay=weight_decay)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, EFCmodel.parameters()), lr=adam_lr)
+    # optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
+    #                         lr=adamw_lr, betas=betas, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, utils.get_lr_lambda(num_epochs//5, num_epochs))
-    criterion = utils.MaskedMSELoss() #nn.MSELoss()
+    criterion = nn.MSELoss()
     train_loss_history, val_loss_history, lr_history = [], [], []
 
     for epoch in range(num_epochs):

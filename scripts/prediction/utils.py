@@ -4,6 +4,30 @@ import math
 from datetime import datetime
 import matplotlib.pyplot as plt
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def masked_mse_loss(y_pred, y_true, mask_threshold=0.05):
+    mask = (y_true >= mask_threshold)
+    y_pred_masked = y_pred[mask]
+    y_true_masked = y_true[mask]
+    return F.mse_loss(y_pred_masked, y_true_masked, reduction='mean')
+
+class MaskedMSELoss(nn.Module):
+    def __init__(self, threshold=0.05):
+        super().__init__()
+        self.threshold = threshold
+
+    def forward(self, input, target):
+        # Create mask where target >= threshold
+        mask = (target >= self.threshold).float()
+        
+        # Compute squared error
+        loss = (input - target) ** 2
+        
+        # Apply mask and compute mean only over valid elements
+        masked_loss = (loss * mask).sum() / (mask.sum() + 1e-8)
+        return masked_loss
 
 def save_artifacts(model, optimizer, train_hist, val_hist, lr_hist, tag, output_dir="outputs"):
     out_dir = os.path.join(output_dir, tag)
@@ -25,13 +49,13 @@ def save_artifacts(model, optimizer, train_hist, val_hist, lr_hist, tag, output_
     plt.style.use("ggplot")
     plt.rcParams["font.family"] = "serif"
     plt.rcParams["mathtext.fontset"] = "dejavuserif"
-    plt.rcParams['figure.figsize'] = (16,9)
+    plt.rcParams['figure.figsize'] = (8,5)
     plt.rcParams['figure.dpi'] = 600
 
     # Save loss curve plot
     # plt.figure(figsize=(8, 5))
-    plt.plot(train_hist, color='darkturquoise', label='Train Loss')
-    plt.plot(val_hist, color='yellow', label='Val Loss')
+    plt.plot(train_hist, color='teal', label='Train Loss')
+    plt.plot(val_hist, color='sandybrown', label='Val Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training vs Validation Loss')

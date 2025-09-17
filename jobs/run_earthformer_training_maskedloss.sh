@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=earthformer_train
+#SBATCH --job-name=earthformer_train_maskedloss
 #SBATCH --partition=ivm             
 #SBATCH --gpus=1                    # Is 1 GPU enough?
 #SBATCH --cpus-per-gpu=4            
 #SBATCH --mem-per-gpu=16G            # Allocate 8GB RAM per GPU
-#SBATCH --time=24:00:00             # Job time needs to be matched to training
-#SBATCH --output=earthformer_training-%j.log    # Output to a log file
+#SBATCH --time=4:00:00             # Job time needs to be matched to training
+#SBATCH --output=earthformer_training_maskedloss-%j.log    # Output to a log file
 
 module load miniconda/23
 conda activate jupyter_env
@@ -31,7 +31,7 @@ cp ${REPO_DIR}/scripts/prediction/*.py ${TMPDIR}
 cd $TMPDIR
 echo "Running earthformer training script in TMPDIR: $TMPDIR"
 
-python run.py
+python run_with_masked_loss.py
 
 # copy results back to home
 cp -r ${TMPDIR}/outputs ${REPO_DIR}/results

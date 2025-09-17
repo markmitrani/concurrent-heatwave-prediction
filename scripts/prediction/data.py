@@ -106,6 +106,29 @@ def split_data(x, y, split_ratio=0.8):
     y_train, y_val = y[:split_idx], y[split_idx:]
     return x_train, y_train, x_val, y_val
 
+def minmax_scale(train_data: np.ndarray, val_data: np.ndarray):
+    """
+    Min–max scale train and val data to [0,1] range using stats from train_data.
+    Works with data shaped (N, T, H, W, C).
+    
+    Args:
+        train_data (np.ndarray): Training data, shape (N, T, H, W, C)
+        val_data   (np.ndarray): Validation data, shape (N, T, H, W, C)
+
+    Returns:
+        scaled_train, scaled_val, min_vals, max_vals
+    """
+    # Compute per-channel stats (axis=(0,1,2,3))
+    min_vals = np.min(train_data, axis=(0,1,2,3), keepdims=True)  # shape (1,1,1,1,C)
+    max_vals = np.max(train_data, axis=(0,1,2,3), keepdims=True)  # shape (1,1,1,1,C)
+
+    denom = np.where(max_vals - min_vals == 0, 1.0, max_vals - min_vals)
+
+    scaled_train = (train_data - min_vals) / denom
+    scaled_val   = (val_data   - min_vals) / denom
+
+    return scaled_train, scaled_val, min_vals, max_vals
+
 def get_dataloaders(x_train, y_train, x_val=None, y_val=None, batch_size=64):
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
