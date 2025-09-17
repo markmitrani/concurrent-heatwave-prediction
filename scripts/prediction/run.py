@@ -76,8 +76,9 @@ def main():
     input_len = 5
     lead_time = 5
     batch_size = 16
-    num_epochs = 200
+    num_epochs = 20
     num_classes = 8
+    archetype_index = 3
 
     # Optimizer parameters
     adam_learning_rate = 5e-4
@@ -86,29 +87,28 @@ def main():
     weight_decay = 1e-5
 
     # import the data
-    tas_path = "data/lentis_tas.nc"
     stream_path = "data/lentis_stream.nc"
+    olr_path = "data/lentis_olr.nc"
     S_PCHA_path = "data/pcha.hdf5"
-    dataset_comb = data.load_datasets(stream_path, tas_path)
+    stream_ds, olr_ds = data.load_datasets(stream_path, olr_path)
+    x_np = data.extend_and_combine_datasets(stream_ds, olr_ds)
 
-    x, y, kept_time_indices = data.construct_targets_and_interpolate(dataset_comb, S_PCHA_path, lead_time, input_len)
+    x, y, kept_time_indices = data.construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index=3, input_len = input_len)
 
-    x_train, y_train, x_val, y_val = data.split_data(x,y) # TODO make sure the split happens at exactly where one lentis ends and another begins
+    x_train, y_train, x_val, y_val = data.split_data(x,y)
 
     train_loader, val_loader = data.get_dataloaders(x_train, y_train, x_val, y_val, batch_size)
+
+    # train_loader=train_loader[:100]
+    # val_loader=val_loader[:100]
 
     # URL to retrieve pretrained weights
     pretrained_checkpoint_url = "https://earthformer.s3.amazonaws.com/pretrained_checkpoints/earthformer_earthnet2021.pt"
     save_dir = "pretrained/"
 
-    EFCmodel, compatible = model.build_classifier(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir) # TODO have to include out_c and input_seq_length as variables
+    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url)
 
     EFCmodel.to("cuda")
-
-    # Reset positional embeddings
-    for name, param in EFCmodel.named_parameters():
-        if 'pos_embed' in name:
-            nn.init.zeros_(param)
 
     # optimizer = optim.Adam(filter(lambda p: p.requires_grad, EFCmodel.parameters()), lr=learning_rate)
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
@@ -128,11 +128,15 @@ def main():
                 batch_y = batch_y.to("cuda")
                 optimizer.zero_grad()
                 logits = EFCmodel(batch_x)
+
+                loss_mask = (batch_y>=0.05)
                 loss = criterion(logits.squeeze(), batch_y)
-                loss.backward()
+                masked_loss = (loss * loss_mask).sum() / (loss_mask.sum() + 1e-8)
+
+                masked_loss.backward()
                 optimizer.step()
-                total_train_loss += loss.item()
-                prog.set_postfix(loss=loss.item())
+                total_train_loss += masked_loss.item()
+                prog.set_postfix(loss=masked_loss.item())
             scheduler.step()
         
         avg_train_loss = total_train_loss / len(train_loader)
@@ -153,8 +157,11 @@ def main():
                 batch_x = batch_x.to("cuda")
                 batch_y = batch_y.to("cuda")
                 logits = EFCmodel(batch_x)
+                loss_mask = (batch_y>=0.05)
                 loss = criterion(logits.squeeze(), batch_y)
-                total_val_loss += loss.item()
+                masked_loss = (loss * loss_mask).sum() / (loss_mask.sum() + 1e-8)
+
+                total_val_loss += masked_loss.item()
 
                 # if epoch % 10 == 0:
                 all_preds.append(logits.squeeze().cpu())
@@ -166,8 +173,8 @@ def main():
         preds_flat = torch.cat(all_preds).numpy()
         targets_flat = torch.cat(all_targets).numpy()
 
-        print(preds_flat[:1000])
-        print(targets_flat[:1000])
+        # print(preds_flat[:1000])
+        # print(targets_flat[:1000])
     
         if epoch % 10 == 0:
             utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)

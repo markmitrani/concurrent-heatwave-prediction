@@ -4,25 +4,34 @@ import torch.nn as nn
 from earthformer.cuboid_transformer.cuboid_transformer import CuboidTransformerModel
 from earthformer.utils.utils import download
 
-def build_earthformer_model(config, input_len, checkpoint_url, save_dir):
-    checkpoint_path = os.path.join(os.getcwd(), save_dir, "earthformer_earthnet2021.pt")
-    #download(url=checkpoint_url, path=checkpoint_path)
-    state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+def build_earthformer_model(config, input_len, checkpoint_url, save_dir = None):
+    if save_dir is not None:
+        checkpoint_path = os.path.join(os.getcwd(), save_dir, "earthformer_earthnet2021.pt")
+        #download(url=checkpoint_url, path=checkpoint_path)
+        state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
     model = CuboidTransformerModel(input_shape=[input_len, 128, 128, 2], target_shape=[1, 128, 128, 64], **config)
     model_state = model.state_dict()
 
-    compatible = {k: v for k, v in state_dict.items() if k in model_state and model_state[k].shape == v.shape}
-    missing_keys, unexpected_keys = model.load_state_dict(compatible, strict=False)
+    compatible = None
 
-    # print(f"Missing Keys: {missing_keys}")
-    # print(f"Unexpected Keys: {unexpected_keys}")
-    
-    compatible = {k: v for k, v in compatible.items() if k not in missing_keys}
+    if save_dir is not None:
+        compatible = {k: v for k, v in state_dict.items() if k in model_state and model_state[k].shape == v.shape}
+        missing_keys, unexpected_keys = model.load_state_dict(compatible, strict=False)
+
+        # print(f"Missing Keys: {missing_keys}")
+        # print(f"Unexpected Keys: {unexpected_keys}")
+        
+        compatible = {k: v for k, v in compatible.items() if k not in missing_keys}
+            
+        # Reset positional embeddings
+        for name, param in model.named_parameters():
+            if 'pos_embed' in name:
+                nn.init.zeros_(param)
     
     return model, compatible
 
-def build_classifier(num_classes, input_len, config, checkpoint_url, save_dir):
+def build_full_model(num_classes, input_len, config, checkpoint_url, save_dir = None):
     base_model, compatible = build_earthformer_model(config, input_len, checkpoint_url, save_dir)
     # model = EarthformerClassifier(base_model, num_classes)
     model = EarthformerPredictor(base_model)

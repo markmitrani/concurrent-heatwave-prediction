@@ -22,8 +22,8 @@ cp ${REPO_DIR}/data/pretrained/earthformer_earthnet2021.pt ${TMPDIR}/pretrained
 
 # get stream + tas + pcha result
 cp ${REPO_DIR}/data/deseason_smsub_sqrtcosw/lentis_stream250_JJA_2deg_101_deseason_smsub_sqrtcosw.nc ${TMPDIR}/data/lentis_stream.nc
-cp ${REPO_DIR}/data/deseason_smsub_sqrtcosw/lentis_tas_JJA_2deg_101_deseason.nc ${TMPDIR}/data/lentis_tas.nc
-cp ${REPO_DIR}/data/lat30-60/pcha_results_8a.hdf5 ${TMPDIR}/data/pcha.hdf5
+cp ${REPO_DIR}/data/deseason_smsub_sqrtcosw/lentis_toa_JJA_2deg_101_deseason.nc ${TMPDIR}/data/lentis_olr.nc
+cp ${REPO_DIR}/data/deseason_smsub_sqrtcosw/pcha_results_8a_0d.hdf5 ${TMPDIR}/data/pcha.hdf5
 
 # copy scripts
 cp ${REPO_DIR}/scripts/prediction/*.py ${TMPDIR}
