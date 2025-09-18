@@ -55,8 +55,14 @@ class EarthformerPredictor(nn.Module):
     def __init__(self, base_model):
         super().__init__()
         self.model = base_model
-        self.pool = nn.AdaptiveAvgPool3d((1, 1, 1)) # Pool over T, H, W
-        self.fc = nn.Linear(self.model.target_shape[-1], 1) # (nr. channels) -> (nr. classes)
+        self.pool = nn.AdaptiveMaxPool3d((1, 8, 8)) # Pool over T, H, W
+        self.fc = nn.Sequential(
+            nn.Linear(self.model.target_shape[-1] * 8 * 8, 512),
+            nn.ReLU(),
+            nn.Linear(512,1)
+        ) # (nr. channels) -> (nr. classes)
+        
+        # TODO update inits
         nn.init.xavier_uniform_(self.fc.weight)
         nn.init.uniform_(self.fc.bias)
 
