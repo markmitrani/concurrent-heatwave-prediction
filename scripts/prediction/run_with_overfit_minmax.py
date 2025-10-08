@@ -27,10 +27,10 @@ earthformer_config = {
     "upsample_type": "upsample",
 
     "num_global_vectors": 2,
-    "use_dec_self_global": False,
+    "use_dec_self_global": True,
     "dec_self_update_global": True,
-    "use_dec_cross_global": False,
-    "use_global_vector_ffn": False,
+    "use_dec_cross_global": True,
+    "use_global_vector_ffn": True,
     "use_global_self_attn": True,
     "separate_global_qkv": True,
     "global_dim_ratio": 1,
@@ -75,14 +75,14 @@ def main():
     # Experimental variables
     input_len = 5
     lead_time = 5
-    batch_size = 8
-    num_epochs = 20
+    batch_size = 16
+    num_epochs = 100
     num_classes = 8
     archetype_index = 3
 
     # Optimizer parameters
     adam_lr = 5e-4
-    adamw_lr = 1e-3
+    adamw_lr = 1e-5
     betas = (0.9, 0.999)
     weight_decay = 1e-5
 
@@ -99,7 +99,7 @@ def main():
 
     x_train, x_val, min_vals, max_vals = data.minmax_scale(x_train, x_val)
 
-    train_loader, val_loader = data.get_dataloaders(x_train[:10], y_train[:10], x_train[:10], y_train[:10], batch_size)
+    train_loader, val_loader = data.get_dataloaders(x_train[:100], y_train[:100], x_train[:100], y_train[:100], batch_size)
 
     # train_loader=train_loader[:100]
     # val_loader=val_loader[:100]
@@ -108,13 +108,22 @@ def main():
     pretrained_checkpoint_url = "https://earthformer.s3.amazonaws.com/pretrained_checkpoints/earthformer_earthnet2021.pt"
     save_dir = "pretrained/"
 
-    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url)
+    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir)
+
+    # test_model = nn.Sequential(
+    #     nn.Flatten(),
+    #     nn.Linear(x_train.shape[1] * x_train.shape[2] * x_train.shape[3] * x_train.shape[4], 128),
+    #     nn.ReLU(),
+    #     nn.Linear(128, 1)
+    #     )
+    
+    # EFCmodel = test_model
 
     EFCmodel.to("cuda")
 
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, EFCmodel.parameters()), lr=adam_lr)
-    # optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
-    #                         lr=adamw_lr, betas=betas, weight_decay=weight_decay)
+    # optimizer = optim.Adam(filter(lambda p: p.requires_grad, EFCmodel.parameters()), lr=adam_lr)
+    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFCmodel.parameters()),
+                            lr=adamw_lr, betas=betas, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, utils.get_lr_lambda(num_epochs//5, num_epochs))
     criterion = nn.MSELoss()
     train_loss_history, val_loss_history, lr_history = [], [], []
@@ -137,6 +146,7 @@ def main():
                 optimizer.step()
                 total_train_loss += loss.item()
                 prog.set_postfix(loss=loss.item())
+
             scheduler.step()
         
         avg_train_loss = total_train_loss / len(train_loader)
@@ -151,51 +161,39 @@ def main():
         # if epoch % 10 == 0:
         all_preds = []
         all_targets = []
+        total_val_loss = 0.0
+        total_correct = 0
+        total_samples = 0
 
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
                 batch_x = batch_x.to("cuda")
                 batch_y = batch_y.to("cuda")
-                logits = EFCmodel(batch_x)
 
-                loss = criterion(logits.squeeze(), batch_y)
-                
+                logits = EFCmodel(batch_x)
+                preds = logits.squeeze()
+
+                loss = criterion(preds, batch_y)
                 total_val_loss += loss.item()
 
-                # if epoch % 10 == 0:
                 all_preds.append(logits.squeeze().cpu())
                 all_targets.append(batch_y.cpu())
             
-                # preds = torch.argmax(logits, dim=1)
-                # total_correct += (preds == batch_y).sum().item()
-                # total_samples += batch_y.size(0)
+                total_correct += (torch.abs(preds - batch_y) < 0.05).sum().item()
+                total_samples += batch_y.size(0)
+
         preds_flat = torch.cat(all_preds).numpy()
         targets_flat = torch.cat(all_targets).numpy()
-
-        # print(preds_flat[:1000])
-        # print(targets_flat[:1000])
     
-        if epoch == 0 or (epoch+1) % 5 == 0:
+        if epoch == 0 or (epoch+1) % 10 == 0:
             utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
-            plt.figure()
-            plt.scatter(targets_flat, preds_flat, alpha=0.5)
-            plt.xlabel("True Participation Probability")
-            plt.ylabel("Predicted Probability")
-            plt.title(f"Predicted vs True (Epoch {epoch+1})")
-            plt.grid(True)
-            
-            out_dir = os.path.join("outputs", tag)
-            os.makedirs(out_dir, exist_ok=True)
-
-            plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
-            plt.close()
                 
         avg_val_loss = total_val_loss / len(val_loader)
         val_loss_history.append(avg_val_loss)
 
-        # val_acc = total_correct / total_samples if total_samples > 0 else 0.0
+        val_acc = total_correct / total_samples if total_samples > 0 else 0.0
 
-        print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
     utils.save_artifacts(EFCmodel, optimizer, train_loss_history, val_loss_history, lr_history, tag)
 

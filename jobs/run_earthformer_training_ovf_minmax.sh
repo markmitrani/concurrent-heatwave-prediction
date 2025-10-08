@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-gpu=4            
 #SBATCH --mem-per-gpu=16G            # Allocate 8GB RAM per GPU
 #SBATCH --time=1:00:00             # Job time needs to be matched to training
-#SBATCH --output=earthformer_training_ovf-%j.log    # Output to a log file
+#SBATCH --output=earthformer_training_ovf_minmax-%j.log    # Output to a log file
 
 module load miniconda/23
 conda activate jupyter_env
@@ -27,6 +27,8 @@ cp ${REPO_DIR}/data/deseason_smsub_sqrtcosw/pcha_results_8a_0d.hdf5 ${TMPDIR}/da
 
 # copy scripts
 cp ${REPO_DIR}/scripts/prediction/*.py ${TMPDIR}
+# copy plot style
+cp ${REPO_DIR}/scripts/prediction/*.mplstyle ${TMPDIR}
 
 cd $TMPDIR
 echo "Running earthformer training script in TMPDIR: $TMPDIR"

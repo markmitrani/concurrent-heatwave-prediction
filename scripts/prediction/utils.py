@@ -7,6 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+style_file_path = "paper.mplstyle"
+plt.style.use(style_file_path)
+
 def masked_mse_loss(y_pred, y_true, mask_threshold=0.05):
     mask = (y_true >= mask_threshold)
     y_pred_masked = y_pred[mask]
@@ -46,11 +49,9 @@ def save_artifacts(model, optimizer, train_hist, val_hist, lr_hist, tag, output_
         json.dump(val_hist, f)
 
     # Better styling
-    plt.style.use("ggplot")
-    plt.rcParams["font.family"] = "serif"
-    plt.rcParams["mathtext.fontset"] = "dejavuserif"
-    plt.rcParams['figure.figsize'] = (8,5)
-    plt.rcParams['figure.dpi'] = 600
+    
+    # plt.rcParams['figure.figsize'] = (8,5)
+    # plt.rcParams['figure.dpi'] = 600
 
     # Save loss curve plot
     # plt.figure(figsize=(8, 5))
@@ -79,14 +80,14 @@ def plot_pred_vs_true(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
     os.makedirs(out_dir, exist_ok=True)
 
     # Better styling
-    plt.style.use("ggplot")
-    plt.rcParams["font.family"] = "serif"
-    plt.rcParams["mathtext.fontset"] = "dejavuserif"
-    plt.rcParams['figure.figsize'] = (16,9)
-    plt.rcParams['figure.dpi'] = 600
+    
+    # plt.rcParams["font.family"] = "serif"
+    # plt.rcParams["mathtext.fontset"] = "dejavuserif"
+    # plt.rcParams['figure.figsize'] = (16,9)
+    # plt.rcParams['figure.dpi'] = 600
 
     plt.figure()
-    plt.scatter(true_list, pred_list, alpha=0.5, color='darkturquoise')
+    plt.scatter(true_list, pred_list, alpha=0.5)
     plt.xlabel("True Participation Probability")
     plt.ylabel("Predicted Probability")
     plt.title(f"Predicted vs True (Epoch {epoch+1})")

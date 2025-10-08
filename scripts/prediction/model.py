@@ -5,6 +5,7 @@ from earthformer.cuboid_transformer.cuboid_transformer import CuboidTransformerM
 from earthformer.utils.utils import download
 
 def build_earthformer_model(config, input_len, checkpoint_url, save_dir = None):
+    state_dict = {}
     if save_dir is not None:
         checkpoint_path = os.path.join(os.getcwd(), save_dir, "earthformer_earthnet2021.pt")
         #download(url=checkpoint_url, path=checkpoint_path)
@@ -55,20 +56,47 @@ class EarthformerPredictor(nn.Module):
     def __init__(self, base_model):
         super().__init__()
         self.model = base_model
+        print(f"target_shape[-1]: {self.model.target_shape[-1]}")
         self.pool = nn.AdaptiveMaxPool3d((1, 8, 8)) # Pool over T, H, W
         self.fc = nn.Sequential(
             nn.Linear(self.model.target_shape[-1] * 8 * 8, 512),
             nn.ReLU(),
-            nn.Linear(512,1)
+            nn.Dropout(p=0.5),
+            nn.Linear(512,1),
+            # nn.ReLU6()
         ) # (nr. channels) -> (nr. classes)
         
-        # TODO update inits
-        nn.init.xavier_uniform_(self.fc.weight)
-        nn.init.uniform_(self.fc.bias)
+        for m in self.fc:
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.uniform_(m.bias)
+                # nn.init.zeros_(m.bias)
 
+    # x shape before model pass: torch.Size([10, 5, 128, 128, 2])
+    # x shape after model pass: torch.Size([10, 1, 128, 128, 64])
+    # x shape after permutation: torch.Size([10, 64, 1, 128, 128])
+    # x shape after pool: torch.Size([10, 64, 1, 8, 8])
+    # x shape after squeeze: torch.Size([10, 64, 8, 8])
+
+    # S_PCHA shapes:
+    # S_PCHA shapes:
+    # (8, 9200)
+    # w:170, h:46
+    # torch.Size([9200, 35, 128, 2])
+    # Out shape: torch.Size([9200, 128, 128, 2])
+    # x final shape: torch.Size([8700, 5, 128, 128, 2])
+    # y final shape: torch.Size([8700])
+    # target_shape[-1]: 64
+    # x shape before model pass: torch.Size([10, 5, 128, 128, 2])
+    # x shape after model pass: torch.Size([10, 1, 128, 128, 64])
+    # x shape after permutation: torch.Size([10, 64, 1, 128, 128])
+    # x shape after pool: torch.Size([10, 64, 1, 8, 8])
+    # x shape after squeeze+flatten: torch.Size([10, 4096])
+    # x shape after fc: torch.Size([10, 1])
     def forward(self, x):
         x = self.model(x)
         x = x.permute(0, 4, 1, 2, 3)
-        x = self.pool(x).squeeze()
+        x = self.pool(x)
+        x = x.squeeze(2).flatten(start_dim=1)
         x = self.fc(x)
         return x

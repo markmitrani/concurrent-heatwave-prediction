@@ -11,7 +11,7 @@ def load_datasets(stream_path, olr_path):
     dataset_olr = xr.open_dataset(olr_path)
     return dataset_stream, dataset_olr
 
-def extend_and_combine_datasets(stream_ds, olr_ds):
+def extend_and_combine_datasets(stream_ds, olr_ds, olr_lag = 0):
     target_lats = stream_ds['lat']
     spacing = np.mean(np.diff(target_lats))
 
@@ -106,37 +106,27 @@ def split_data(x, y, split_ratio=0.8):
     y_train, y_val = y[:split_idx], y[split_idx:]
     return x_train, y_train, x_val, y_val
 
-def minmax_scale(train_data: np.ndarray, val_data: np.ndarray):
+def minmax_scale(train_data: torch.Tensor, val_data: torch.Tensor):
     """
-    Min–max scale train and val data to [0,1] range using stats from train_data.
+    Min-max scale train and val to [0,1] using stats from train_data.
     Works with data shaped (N, T, H, W, C).
-    
-    Args:
-        train_data (np.ndarray): Training data, shape (N, T, H, W, C)
-        val_data   (np.ndarray): Validation data, shape (N, T, H, W, C)
-
-    Returns:
-        scaled_train, scaled_val, min_vals, max_vals
     """
-    # Compute per-channel stats (axis=(0,1,2,3))
-    min_vals = np.min(train_data, axis=(0,1,2,3), keepdims=True)  # shape (1,1,1,1,C)
-    max_vals = np.max(train_data, axis=(0,1,2,3), keepdims=True)  # shape (1,1,1,1,C)
+    min_vals = train_data.amin(dim=(0,1,2,3), keepdim=True)  # needs torch >=1.7
+    max_vals = train_data.amax(dim=(0,1,2,3), keepdim=True)
 
-    denom = np.where(max_vals - min_vals == 0, 1.0, max_vals - min_vals)
+    denom = torch.where(max_vals - min_vals == 0, torch.tensor(1.0, device=train_data.device), max_vals - min_vals)
 
     scaled_train = (train_data - min_vals) / denom
     scaled_val   = (val_data   - min_vals) / denom
-
     return scaled_train, scaled_val, min_vals, max_vals
 
-def get_dataloaders(x_train, y_train, x_val=None, y_val=None, batch_size=64):
+
+def get_dataloaders(x_train, y_train, x_val, y_val, batch_size=64):
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    val_loader = None
-    if x_val is not None and y_val is not None:
-        val_dataset = TensorDataset(x_val, y_val)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    val_dataset = TensorDataset(x_val, y_val)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader
 
