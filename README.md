@@ -97,3 +97,17 @@ Adjust the following parameters as necessary to test various experimental setups
 ```rolling_avg_window```: Window length (in days) for computing rolling averages of the target variable. Smooths short-term variability and highlights persistent signals.
 
 *NOTE:* Make sure the input and output directories and variable names point to the correct paths in the scripts. The relevant variables should be configured under ```/config.env``` to consistently sync across different jobs. If parts of the procedure are changed, some python scripts may still require a minimal amount of manual configuration for differing file names.
+
+## Results
+### Northern Hemisphere Summer Archetypes for n=8
+<img width="3524" height="5647" alt="archetypes_8_0d_on_map" src="https://github.com/user-attachments/assets/35b40861-503a-483a-8251-ca82a6caad53" />
+
+### TAS Composites for Archetypes
+<img width="3524" height="5703" alt="composite_8_arch_0d_argmax_z" src="https://github.com/user-attachments/assets/56661ea9-e321-4a75-b93f-534b7b746342" />
+
+### Earthformer Prediction Task
+Predicting archetype 7 with lead time = 5, input length = 5, olr lag = 14, 7 days rolling average target smoothing
+
+<img width="3554" height="2204" alt="pred_vs_true_epoch_100" src="https://github.com/user-attachments/assets/75a58a2f-a058-437f-8fd0-321e3f3cb673" />
+<img width="3012" height="2067" alt="pred_vs_true_dist_epoch_100" src="https://github.com/user-attachments/assets/d6698dd7-1083-434f-9e37-a27243323faa" />
+
