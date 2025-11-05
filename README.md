@@ -10,11 +10,17 @@ Set up virtual environment and install all dependencies automatically:
 This is a multi-step pipeline, so follow it in order for the best results and least headache 🧘‍♂️⚙️✨
 ### Pre-processing
 Takes LENTIC files stored as netCDF files and runs the necessary preprocessing steps on them.
+
 **Preprocessing stream function**
+
 ```jobs/run_preprocessing_stream.sh```
+
 **Preprocessing TAS**
+
 ```jobs/run_preprocessing_tas.sh```
+
 **Preprocessing OLR**
+
 ```jobs/run_preprocessing_olr.sh```
 ### Archetypal Analysis
 **Perform SVD**
@@ -59,9 +65,13 @@ Each of the z-scoring methods are relevant for different anomalous temperature c
 
 ### Prediction
 Once the most relevant archetype for prediction is chosen based on the composites, the prediction procedure takes an input sequence containing stream function and OLR data for ```input_len``` days and returns a score between 0 and 1 corresponding to the foreseen prevalence of the chosen archetype with an lead of ```lead_time``` days into the future. The pipeline uses an Earthformer model as base, and appends a lightweight predictor head to transform the model output into a probability score. The steps of the pipeline are broken down into various files for modularity and a clear organization:
+
 ```prediction/data.py```: Merging stream function and OLR data, preparing x and y tensors and DataLoaders for model use.
+
 ```prediction/model.py```: Model definitions with Earthformer as a base model and EarthformerPredictor as the final model used in the pipeline.
+
 ```prediction/run.py```: Bringing everything together, setting (hyper)parameters, calling data and model helpers, running the training procedure.
+
 ```prediction/utils.py```: Various utilities to plot relevant information during training.
 
 **Run Prediction Pipeline**
