@@ -61,16 +61,16 @@ class EarthformerPredictor(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(self.model.target_shape[-1] * 8 * 8, 512),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.4),
             nn.Linear(512,1),
-            # nn.ReLU6()
+            nn.Sigmoid()
         ) # (nr. channels) -> (nr. classes)
         
         for m in self.fc:
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
-                nn.init.uniform_(m.bias)
-                # nn.init.zeros_(m.bias)
+                # nn.init.uniform_(m.bias) # mean is: 0.14672432839870453
+                nn.init.zeros_(m.bias)
 
     # x shape before model pass: torch.Size([10, 5, 128, 128, 2])
     # x shape after model pass: torch.Size([10, 1, 128, 128, 64])

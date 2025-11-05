@@ -97,6 +97,21 @@ def plot_pred_vs_true(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
     plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
     plt.close()
 
+def plot_pred_vs_target_distributions(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
+    out_dir = os.path.join(output_dir, tag)
+    os.makedirs(out_dir, exist_ok=True)
+
+    plt.figure()
+    plt.hist(true_list, bins='auto', alpha=0.6, label="Targets", density=True)
+    plt.hist(pred_list, bins='auto', alpha=0.6, label="Predictions", density=True)
+    plt.xlabel("Value")
+    plt.ylabel("Density")
+    plt.legend()
+    plt.title(f"Predicted vs Target Distribution (Epoch {epoch+1})")
+    
+    plt.savefig(f"{out_dir}/pred_vs_true_dist_epoch_{epoch+1}.png")
+    plt.close()
+
 def get_lr_lambda(warmup_steps, total_steps):
     def lr_lambda(current_step, warmup_steps=warmup_steps, total_steps=total_steps):
         if current_step < warmup_steps:

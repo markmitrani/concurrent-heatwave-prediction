@@ -1,4 +1,5 @@
 from datetime import datetime
+from scipy.stats import pearsonr, spearmanr, kendalltau
 import math
 import os
 from tqdm import tqdm
@@ -75,18 +76,19 @@ def main():
 
     # Experimental variables
     input_len = 5
-    lead_time = 5
+    lead_time = 7
     batch_size = 16
     num_epochs = 100
     num_classes = 8
-    archetype_index = 3
-    olr_lag = 0
+    archetype_index = 6
+    olr_lag = 14
+    rolling_avg_window = 7
 
     # Optimizer parameters
-    adam_lr = 1e-5
-    adamw_lr = 1e-5
+    adam_lr = 3e-5
+    adamw_lr = 5e-5
     betas = (0.9, 0.999)
-    weight_decay = 1e-5
+    weight_decay = 1e-4
 
     # import the data
     stream_path = "data/lentis_stream.nc"
@@ -95,7 +97,7 @@ def main():
     stream_ds, olr_ds = data.load_datasets(stream_path, olr_path)
     x_np = data.extend_and_combine_datasets(stream_ds, olr_ds, olr_lag)
 
-    x, y, _ = data.construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index, input_len = input_len)
+    x, y, _ = data.construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index, input_len=input_len, window_size=rolling_avg_window)
 
     x_train, y_train, x_val, y_val = data.split_data(x,y)
     
@@ -115,7 +117,7 @@ def main():
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, EFPmodel.parameters()),
                             lr=adamw_lr, betas=betas, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, utils.get_lr_lambda(num_epochs//5, num_epochs))
-    criterion = utils.MaskedMSELoss()
+    criterion = torch.nn.MSELoss()
     train_loss_history, val_loss_history, lr_history = [], [], []
 
     for epoch in range(num_epochs):
@@ -160,12 +162,12 @@ def main():
                 batch_y = batch_y.to("cuda")
 
                 logits = EFPmodel(batch_x)
-                preds = logits.squeeze()
+                preds = logits.squeeze(-1)
 
                 loss = criterion(preds, batch_y)
                 total_val_loss += loss.item()
 
-                all_preds.append(logits.squeeze().cpu())
+                all_preds.append(logits.squeeze(-1).cpu())
                 all_targets.append(batch_y.cpu())
             
                 total_correct += (torch.abs(preds - batch_y) < 0.05).sum().item()
@@ -173,21 +175,14 @@ def main():
 
         preds_flat = torch.cat(all_preds).numpy()
         targets_flat = torch.cat(all_targets).numpy()
-    
+
+        pearson_r, pearson_p = pearsonr(preds_flat, targets_flat)
+        spearman_r, spearman_p = spearmanr(preds_flat, targets_flat)
+        kendalltau_r, kendalltau_p = kendalltau(preds_flat, targets_flat)
+        
         if epoch == 0 or (epoch+1) % 10 == 0:
             utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
-            # plt.figure()
-            # plt.scatter(targets_flat, preds_flat, alpha=0.5)
-            # plt.xlabel("True Participation Probability")
-            # plt.ylabel("Predicted Probability")
-            # plt.title(f"Predicted vs True (Epoch {epoch+1})")
-            # plt.grid(True)
-            
-            # out_dir = os.path.join("outputs", tag)
-            # os.makedirs(out_dir, exist_ok=True)
-
-            # plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
-            # plt.close()
+            utils.plot_pred_vs_target_distributions(preds_flat, targets_flat, epoch, tag)
                 
         avg_val_loss = total_val_loss / len(val_loader)
         val_loss_history.append(avg_val_loss)
@@ -195,6 +190,7 @@ def main():
         val_acc = total_correct / total_samples if total_samples > 0 else 0.0
 
         print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        print(f"Pearson: r={pearson_r:.3f}, p={pearson_p:.3f}; Spearman: r={spearman_r:.3f}, p={spearman_p:.3f}; Kendall-Tau: r={kendalltau_r:.3f}, p={kendalltau_p:.3f}")
 
     utils.save_artifacts(EFPmodel, optimizer, train_loss_history, val_loss_history, lr_history, tag)
 

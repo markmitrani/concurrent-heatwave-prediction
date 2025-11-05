@@ -1,4 +1,5 @@
 from datetime import datetime
+from scipy.stats import pearsonr, spearmanr, kendalltau
 import math
 import os
 from tqdm import tqdm
@@ -79,9 +80,10 @@ def main():
     num_epochs = 100
     num_classes = 8
     archetype_index = 3
+    olr_lag = 10
 
     # Optimizer parameters
-    adam_lr = 5e-4
+    # adam_lr = 5e-4
     adamw_lr = 1e-5
     betas = (0.9, 0.999)
     weight_decay = 1e-5
@@ -91,7 +93,7 @@ def main():
     olr_path = "data/lentis_olr.nc"
     S_PCHA_path = "data/pcha.hdf5"
     stream_ds, olr_ds = data.load_datasets(stream_path, olr_path)
-    x_np = data.extend_and_combine_datasets(stream_ds, olr_ds)
+    x_np = data.extend_and_combine_datasets(stream_ds, olr_ds, olr_lag)
 
     x, y, _ = data.construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index, input_len = input_len)
 
@@ -99,7 +101,7 @@ def main():
 
     x_train, x_val, min_vals, max_vals = data.minmax_scale(x_train, x_val)
 
-    train_loader, val_loader = data.get_dataloaders(x_train[:100], y_train[:100], x_train[:100], y_train[:100], batch_size)
+    train_loader, val_loader = data.get_dataloaders(x_train[:10], y_train[:10], x_train[:10], y_train[:10], batch_size)
 
     # train_loader=train_loader[:100]
     # val_loader=val_loader[:100]
@@ -108,7 +110,7 @@ def main():
     pretrained_checkpoint_url = "https://earthformer.s3.amazonaws.com/pretrained_checkpoints/earthformer_earthnet2021.pt"
     save_dir = "pretrained/"
 
-    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir)
+    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir=None)
 
     # test_model = nn.Sequential(
     #     nn.Flatten(),
@@ -127,7 +129,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, utils.get_lr_lambda(num_epochs//5, num_epochs))
     criterion = nn.MSELoss()
     train_loss_history, val_loss_history, lr_history = [], [], []
-
+    
     for epoch in range(num_epochs):
         EFCmodel.train()
         total_train_loss = 0.0
@@ -184,9 +186,14 @@ def main():
 
         preds_flat = torch.cat(all_preds).numpy()
         targets_flat = torch.cat(all_targets).numpy()
-    
+
+        pearson_r, pearson_p = pearsonr(preds_flat, targets_flat)
+        spearman_r, spearman_p = spearmanr(preds_flat, targets_flat)
+        kendalltau_r, kendalltau_p = kendalltau(preds_flat, targets_flat)
+
         if epoch == 0 or (epoch+1) % 10 == 0:
             utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
+            utils.plot_pred_vs_target_distributions(preds_flat, targets_flat, epoch, tag)
                 
         avg_val_loss = total_val_loss / len(val_loader)
         val_loss_history.append(avg_val_loss)
@@ -194,6 +201,7 @@ def main():
         val_acc = total_correct / total_samples if total_samples > 0 else 0.0
 
         print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        # print(f"Pearson: r={pearson_r:.3f}, p={pearson_p:.3f}; Spearman: r={spearman_r:.3f}, p={spearman_p:.3f}; Kendall-Tau: r={kendalltau_r:.3f}, p={kendalltau_p:.3f}")
 
     utils.save_artifacts(EFCmodel, optimizer, train_loss_history, val_loss_history, lr_history, tag)
 

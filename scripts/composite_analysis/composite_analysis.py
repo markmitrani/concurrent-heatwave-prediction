@@ -339,8 +339,11 @@ def plot_composites_zscore_bbox(composite_da, plots_dir, method, varname='tas', 
 
 def main(method):
     repo_dir = "concurrent-heatwave-prediction"
-    data_dir = os.path.join(repo_dir, "data", "deseason_smsub_sqrtcosw")
-    plots_dir = os.path.join(repo_dir, "plots", "deseason_smsub_sqrtcosw")
+    data_dir = os.path.join(repo_dir, "data", "lat30-60")
+    plots_dir = os.path.join(repo_dir, "plots", "lat30-60")
+
+    if not os.path.exists(plots_dir):
+        os.makedirs(plots_dir)
 
     tas_path = os.path.join(data_dir, 'lentis_tas_JJA_2deg_101_deseason.nc')
     pcha_path = os.path.join(data_dir, 'pcha_results_8a_0d.hdf5')

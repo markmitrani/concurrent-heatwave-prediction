@@ -24,6 +24,9 @@ def extend_and_combine_datasets(stream_ds, olr_ds, olr_lag = 0):
     stream_ds_ext = stream_ds.interp(lat=extended_target_lats, method='linear')
     stream_np = stream_ds_ext['stream'].squeeze('plev').values
 
+    # olr input lags behind stream func data by predefined amount of days
+    aligned_olr_ds['time'] = aligned_olr_ds['time'] + np.timedelta64(olr_lag, 'D')
+
     aligned_olr_jja = aligned_olr_ds.sel(time=aligned_olr_ds['time'].dt.month.isin([6, 7, 8]))
     olr_np = aligned_olr_jja['rlut'].values
 
@@ -32,22 +35,18 @@ def extend_and_combine_datasets(stream_ds, olr_ds, olr_lag = 0):
     return x_np
 
 # Modified target construction method for regression task
-def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index=3, input_len = 1):
+def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index=3, input_len=1, window_size=None):
     with h5py.File(S_PCHA_path, 'r') as f:
         S_PCHA = f['/S_PCHA'][:]
 
     print("S_PCHA shapes:")
     print(S_PCHA.shape)
-    # for i in range(S_PCHA.shape[0]):
-    #     print(f"Arch {i} mean: {S_PCHA[i].mean()}")
-    #     print(f"Arch {i} variance: {S_PCHA[i].var()}")
 
     arch_probs = S_PCHA[archetype_index]  # shape: (time,)
     target_da = xr.DataArray(arch_probs, dims="time", coords={"time": stream_ds.time})
-    targets = target_da.values
+    targets = target_da.values               # numpy array of full-length targets
 
     x_tensor = torch.from_numpy(x_np).float()
-
     x_tensor = interpolate_tensor_with_padding(x_tensor)
 
     time = stream_ds['time'].values
@@ -57,24 +56,87 @@ def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, a
         target_time = time[t] + np.timedelta64(lead_time, 'D')
         if time[t + lead_time] == target_time:
             this_x_list = []
-            for i in range (input_len):
-              if i == 0:
-                  this_x_list.append(x_tensor[t])
-              else:
-                  x_prev_time = time[t] - i*np.timedelta64(lead_time, 'D')
-                  if (t - i >= 0) and time[t - i] == x_prev_time:
-                      this_x_list.append(x_tensor[t-i])
-                  else:
-                      this_x_list.append(torch.zeros_like(x_tensor[t]))
-            x_list.append(torch.stack(this_x_list)) # (T, H, W, C)
+            for i in range(input_len):
+                if i == 0:
+                    this_x_list.append(x_tensor[t])
+                else:
+                    x_prev_time = time[t] - i * np.timedelta64(lead_time, 'D')
+                    if (t - i >= 0) and time[t - i] == x_prev_time:
+                        this_x_list.append(x_tensor[t - i])
+                    else:
+                        this_x_list.append(torch.zeros_like(x_tensor[t]))
+            x_list.append(torch.stack(this_x_list))  # (T, H, W, C)
             y_list.append(targets[t + lead_time])
             kept_time_indices.append(t)
 
     x_final = torch.stack(x_list)                       # shape: (N, T, H, W, C)
-    
+
+    # original selected targets and their corresponding target times
+    y_final = torch.tensor(y_list, dtype=torch.float)  # shape (N,)
+    kept_time_indices = np.array(kept_time_indices, dtype=int)
+
     print(f"x final shape: {x_final.shape}")
-    y_final = torch.tensor(y_list, dtype=torch.float)
     print(f"y final shape: {y_final.shape}")
+    print(f"y mean: {y_final.mean()}")
+    print(f"baseline accuracy: {(np.abs(y_final - 0.15) < 0.05).sum() / y_final.shape[0]}")
+
+    # apply rolling avg after selection
+    if window_size is not None and window_size > 1 and y_final.numel() > 0:
+        # compute the target times corresponding to each kept sample
+        # note: the y value was targets[t + lead_time], so index into time is t + lead_time
+        target_indices = kept_time_indices + lead_time
+        target_times_selected = time[target_indices]
+
+        # find breaks where consecutive selected target times are not consecutive days
+        # we treat day-step as 1 day; convert diff to integer days
+        time_deltas = np.diff(target_times_selected).astype('timedelta64[D]').astype(int)
+        breaks = np.where(time_deltas != 1)[0] + 1  # break positions in the selected sequence
+
+        # segment boundaries (start inclusive, end exclusive)
+        segment_starts = np.concatenate(([0], breaks))
+        segment_ends = np.concatenate((breaks, [len(y_final)]))
+
+        print(segment_starts)
+
+        y_vals = y_final.numpy().astype(float)  # work in numpy for cumsum
+        y_smoothed = np.empty_like(y_vals)
+
+        for start, end in zip(segment_starts, segment_ends):
+            seg = y_vals[start:end]
+            n = len(seg)
+            if n == 0:
+                continue
+
+            # fast cumulative-sum based rolling:
+            # sum[i] = sum_{0..i} seg[j]
+            sums = np.cumsum(seg, dtype=float)
+
+            # counts for each position: min(i+1, window_size)
+            # sums for i < window_size: sums[i]
+            # sums for i >= window_size: sums[i] - sums[i-window_size]
+            out = np.empty_like(seg)
+
+            # vectorized handling:
+            if n <= window_size:
+                # for all indices here, we average over available history (1..i+1)
+                counts = np.arange(1, n + 1)
+                out = sums / counts
+            else:
+                # first window_size entries averaged over fewer elements
+                counts_head = np.arange(1, window_size + 1)
+                out[:window_size] = sums[:window_size] / counts_head
+                # remaining entries: sliding window of fixed size
+                sums_tail = sums[window_size:] - sums[:-window_size]
+                out[window_size:] = sums_tail / window_size
+
+            y_smoothed[start:end] = out
+
+        # replace y_final with smoothed values (convert back to torch tensor)
+        y_final = torch.tensor(y_smoothed, dtype=torch.float)
+
+        print(f"y final shape: {y_final.shape}")
+        print(f"y mean: {y_final.mean()}")
+        print(f"baseline accuracy: {(np.abs(y_final - 0.15) < 0.05).sum() / y_final.shape[0]}")
 
     return x_final, y_final, kept_time_indices
 
