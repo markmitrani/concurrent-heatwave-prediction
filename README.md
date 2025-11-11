@@ -111,3 +111,6 @@ Predicting archetype 7 with lead time = 5, input length = 5, olr lag = 14, 7 day
 <img width="3554" height="2204" alt="pred_vs_true_epoch_100" src="https://github.com/user-attachments/assets/75a58a2f-a058-437f-8fd0-321e3f3cb673" />
 <img width="3012" height="2067" alt="pred_vs_true_dist_epoch_100" src="https://github.com/user-attachments/assets/d6698dd7-1083-434f-9e37-a27243323faa" />
 
+## Summary of Data Transformations
+The figure below illustrates the entire pipeline, from preprocessing raw data files to making the predictions:
+![data_transformation_summary](https://github.com/user-attachments/assets/84a4bffe-5045-4422-a6a8-84d56efd7674)
