@@ -9,7 +9,7 @@ Set up virtual environment and install all dependencies automatically:
 ## Usage
 This is a multi-step pipeline, so follow it in order for the best results and least headache 🧘‍♂️⚙️✨
 ### Pre-processing
-Takes LENTIC files stored as netCDF files and runs the necessary preprocessing steps on them.
+Takes LENTIS files stored as netCDF files and runs the necessary preprocessing steps on them.
 
 **Preprocessing stream function**
 
