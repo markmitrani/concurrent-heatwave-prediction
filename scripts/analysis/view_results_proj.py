@@ -91,7 +91,7 @@ def main(plot_anomalies):
         fig, axes = plt.subplots(6, 1, figsize=(16, 18), subplot_kw={'projection': ccrs.PlateCarree()},
         constrained_layout=False)
     elif (nr_archetypes == 8):
-        fig, axes = plt.subplots(4, 2, figsize=(16, 8), subplot_kw={'projection': ccrs.PlateCarree()},
+        fig, axes = plt.subplots(4, 2, figsize=(16, 5), subplot_kw={'projection': ccrs.PlateCarree()},
         constrained_layout=False
         )
 
@@ -175,7 +175,7 @@ def main(plot_anomalies):
 
     # save figure(s)
     flag_string = "_anom" if plot_anomalies else ""
-    fname = os.path.join(plots_dir ,f"archetypes_{nr_archetypes}_on_map_0d{flag_string}_v2.png")
+    fname = os.path.join(plots_dir ,f"archetypes_{nr_archetypes}_on_map_0d{flag_string}_v2.1.png")
     fig.savefig(fname, dpi=300, bbox_inches='tight')
     plt.close(fig)
 
