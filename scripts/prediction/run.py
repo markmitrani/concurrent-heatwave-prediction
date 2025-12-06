@@ -76,11 +76,11 @@ def main():
 
     # Experimental variables
     input_len = 5
-    lead_time = 7
+    lead_time = 5
     batch_size = 16
     num_epochs = 100
     num_classes = 8
-    archetype_index = 6
+    archetype_index = 4
     olr_lag = 14
     rolling_avg_window = 7
 

@@ -76,17 +76,17 @@ def main():
     # Experimental variables
     input_len = 5
     lead_time = 5
-    batch_size = 16
-    num_epochs = 100
+    batch_size = 4
+    num_epochs = 10
     num_classes = 8
     archetype_index = 3
     olr_lag = 10
 
     # Optimizer parameters
     # adam_lr = 5e-4
-    adamw_lr = 1e-5
+    adamw_lr = 5e-4
     betas = (0.9, 0.999)
-    weight_decay = 1e-5
+    weight_decay = 1e-4
 
     # import the data
     stream_path = "data/lentis_stream.nc"
@@ -101,7 +101,7 @@ def main():
 
     x_train, x_val, min_vals, max_vals = data.minmax_scale(x_train, x_val)
 
-    train_loader, val_loader = data.get_dataloaders(x_train[:10], y_train[:10], x_train[:10], y_train[:10], batch_size)
+    train_loader, val_loader = data.get_dataloaders(x_train[:64], y_train[:64], x_train[:64], y_train[:64], batch_size)
 
     # train_loader=train_loader[:100]
     # val_loader=val_loader[:100]
@@ -191,9 +191,9 @@ def main():
         spearman_r, spearman_p = spearmanr(preds_flat, targets_flat)
         kendalltau_r, kendalltau_p = kendalltau(preds_flat, targets_flat)
 
-        if epoch == 0 or (epoch+1) % 10 == 0:
-            utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
-            utils.plot_pred_vs_target_distributions(preds_flat, targets_flat, epoch, tag)
+        # if epoch == 0 or (epoch+1) % 10 == 0:
+        utils.plot_pred_vs_true(preds_flat, targets_flat, epoch, tag)
+        utils.plot_pred_vs_target_distributions(preds_flat, targets_flat, epoch, tag)
                 
         avg_val_loss = total_val_loss / len(val_loader)
         val_loss_history.append(avg_val_loss)

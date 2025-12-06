@@ -50,7 +50,7 @@ def save_artifacts(model, optimizer, train_hist, val_hist, lr_hist, tag, output_
 
     # Better styling
     
-    # plt.rcParams['figure.figsize'] = (8,5)
+    # plt.rcParams['figure.figsize'] = (5,5)
     # plt.rcParams['figure.dpi'] = 600
 
     # Save loss curve plot
@@ -83,16 +83,31 @@ def plot_pred_vs_true(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
     
     # plt.rcParams["font.family"] = "serif"
     # plt.rcParams["mathtext.fontset"] = "dejavuserif"
-    # plt.rcParams['figure.figsize'] = (16,9)
     # plt.rcParams['figure.dpi'] = 600
 
-    plt.figure()
+    plt.figure(figsize=(5,5))
+    # plt.axis("equal")
     plt.scatter(true_list, pred_list, alpha=0.5)
     plt.xlabel("True Participation Probability")
     plt.ylabel("Predicted Probability")
     plt.title(f"Predicted vs True (Epoch {epoch+1})")
-    plt.tight_layout()
+
+    # Draw diagonal - black and dashed
+    # x_min, x_max = plt.xlim()
+    # y_min, y_max = plt.ylim()
+    # low = min(x_min, y_min)
+    # high = max(x_max, y_max)
+    # plt.plot([low, high], [low, high],
+    #          linestyle='--', color='black', linewidth=1)
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+
+    # Draw diagonal y = x across the 0–1 interval
+    plt.plot([0, 1], [0, 1],
+             linestyle='--', color='black', linewidth=0.75)
+
     plt.grid(True)
+    plt.tight_layout()
 
     plt.savefig(f"{out_dir}/pred_vs_true_epoch_{epoch+1}.png")
     plt.close()

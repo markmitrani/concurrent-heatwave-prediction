@@ -5,6 +5,7 @@ import xarray as xr
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 from matplotlib.patches import Rectangle
 import argparse
 
@@ -272,35 +273,80 @@ def plot_composites_zscore_bbox(composite_da, plots_dir, method, varname='tas', 
     # grouped by archetype number
     n_arch = composite_da.sizes['archetype']
 
-    fig_height = {4: 12, 6: 18, 8: 24}.get(n_arch, 4 * n_arch)
-    fig, axes = plt.subplots(n_arch, 1, figsize=(16, fig_height),
-                            subplot_kw={'projection': ccrs.PlateCarree()}, constrained_layout=False)
+    fig_height = {4: 12, 6: 18, 8: 8}.get(n_arch, 4 * n_arch)
+    if n_arch == 8:
+        fig, axes = plt.subplots(4, 2, figsize=(16, fig_height),
+                        subplot_kw={'projection': ccrs.PlateCarree()}, constrained_layout=False)
+    else:
+        fig, axes = plt.subplots(n_arch, 1, figsize=(16, fig_height),
+                        subplot_kw={'projection': ccrs.PlateCarree()}, constrained_layout=False)
+    
     axes = axes.flatten()
 
-    vmin = composite_da.min().item()
-    vmax = composite_da.max().item()
+    # tighten margins and vertical spacing
+    fig.subplots_adjust(
+        left=0.05,
+        right=0.98,
+        top=0.96,
+        bottom=0.12,
+        hspace=0.15,
+        wspace=0.075
+    )
+
+    data_min = composite_da.min().item()
+    data_max = composite_da.max().item()
+    absmax = max(abs(data_min), abs(data_max))
+    vmin, vmax = -absmax, absmax
 
     for i, ax in enumerate(axes):
         arr = composite_da.isel(archetype=i)
+
+        ax.set_aspect("auto")
 
         # pcolormesh plot with geographic transform
         pcm = arr.plot.pcolormesh(
             ax=ax,
             transform=ccrs.PlateCarree(),
-            cmap='coolwarm',
+            cmap='RdBu_r',
             vmin=vmin,
             vmax=vmax,
-            add_colorbar=True,
-            cbar_kwargs={"label": varname}
+            add_colorbar=False,
+            add_labels=False
         )
 
         # map features & gridlines
         ax.coastlines(resolution='110m', linewidth=0.8)
         ax.add_feature(cfeature.BORDERS, linewidth=0.4)
-        ax.set_title(f"Composite for Archetype {i+1}")
-        ax.gridlines(draw_labels=True, linewidth=0.3, color='gray', alpha=0.5)
+        # ax.set_title(f"Composite for Archetype {i+1}")
+        gl = ax.gridlines(draw_labels=False, linewidth=0.3, color='gray', alpha=0.5)
+
+        show_left   = (i % 2 == 0)
+        show_right  = not show_left
+        show_top    = (i <= 1)
+        show_bottom = (i >= 6)
+
+        if i % 2 == 0:
+            gl.left_labels = True
+        else:
+            gl.right_labels = True
+        if i<=1:
+            gl.top_labels = True
+        elif i>=6:
+            gl.bottom_labels = True
+        
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
+
+        # large subplot label in upper-left
+        ax.text(
+            0.02, 0.95,               # position in axes coords
+            f"{i+1}",                 # 1, 2, 3, ...
+            transform=ax.transAxes,
+            fontsize=18,
+            fontweight='bold',
+            va='top', ha='left',
+            path_effects=[pe.withStroke(linewidth=2, foreground="white")]
+        )
     
         if zscore_bboxes is not None:
             for bbox in zscore_bboxes:
@@ -332,8 +378,12 @@ def plot_composites_zscore_bbox(composite_da, plots_dir, method, varname='tas', 
                     fontsize=9,
                     transform=ccrs.PlateCarree()
                 )
+        
+    cbar = fig.colorbar(pcm, ax=axes, orientation="horizontal", shrink=0.7, fraction=0.035, pad=0.08)
 
-    fname = os.path.join(plots_dir, f"composite_{n_arch}_arch_0d_{method}_z.png")
+    cbar.set_label("TAS Anomaly")
+
+    fname = os.path.join(plots_dir, f"composite_{n_arch}_arch_0d_{method}_z_v2.png")
     fig.savefig(fname, dpi=300, bbox_inches='tight')
     plt.close(fig)
 
