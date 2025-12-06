@@ -1,2 +1,0 @@
-# Predicting weather-driven crop failures with space-time transformers
-The github repository for the data pipeline used to predict stream function archetypes related to concurrent heatwaves using Earthformer.
