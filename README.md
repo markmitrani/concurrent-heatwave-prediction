@@ -1,4 +1,4 @@
-# Predicting weather-driven crop failures with space-time transformers
+# Predicting High-Risk Atmospheric Patterns Linked to Northern Hemispheric Crop Failures with Spatiotemporal Transformers
 The github repository for the data pipeline used to predict stream function archetypes related to concurrent heatwaves using Earthformer.
 
 ## Installation
