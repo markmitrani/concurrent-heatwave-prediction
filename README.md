@@ -1,5 +1,6 @@
 # Predicting High-Risk Atmospheric Patterns Linked to Northern Hemispheric Crop Failures with Spatiotemporal Transformers
 The github repository for the data pipeline used to predict stream function archetypes related to concurrent heatwaves using Earthformer.
+This repository accompanies the work outlined in [this paper](https://github.com/markmitrani/concurrent-heatwave-prediction/blob/59722e0e5a3a19cab42a37eca4ebdebe383211e1/predicting-concurrent-extremes-mitrani2025.pdf).
 
 ## Installation
 Set up virtual environment and install all dependencies automatically:
