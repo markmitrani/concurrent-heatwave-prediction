@@ -5,6 +5,7 @@ import xarray as xr
 import h5py
 import numpy as np
 from math import floor
+from scipy.stats import pearsonr, spearmanr, kendalltau
 
 def load_datasets(stream_path, olr_path):
     dataset_stream = xr.open_dataset(stream_path)
@@ -33,6 +34,34 @@ def extend_and_combine_datasets(stream_ds, olr_ds, olr_lag = 0):
     x_np = np.stack([stream_np, olr_np], axis=-1)
     
     return x_np
+
+def generate_baselines(y_final, lead_time, window_size):
+        print(f"== Window Size: {window_size if window_size else 0}, Lead time: {lead_time} ==")
+        y_np = y_final.detach().cpu().numpy()
+
+        clim = y_np.mean()
+        print(f"y mean: {clim}")
+
+        print("= CLIMATOLOGY =")
+        rmse_clim = np.sqrt(np.mean((y_np - clim)**2))
+        print(f"Climatology baseline accuracy: {(np.abs(y_np - clim) < 0.05).mean():.4f}")
+        print(f"Climatology RMSE: {rmse_clim}")
+
+        print("= PERSISTENCE =")
+        true = y_np[lead_time:]
+        pred = y_np[:-lead_time]
+
+        acc_pers = (np.abs(true - pred) < 0.05).mean()
+        print(f"Persistence baseline accuracy: {acc_pers:.4f}")
+
+        rmse_pers = np.sqrt(np.mean((true - pred)**2))
+        pearson_pers, _ = pearsonr(pred, true)
+        spearman_pers, _ = spearmanr(pred, true)
+        kendall_pers, _ = kendalltau(pred, true)
+
+        print(f"Persistence RMSE: {rmse_pers:.4f}")
+
+        print(f"Pearson: r={pearson_pers:.3f}; Spearman: r={spearman_pers:.3f}; Kendall-Tau: r={kendall_pers:.3f}")
 
 # Modified target construction method for regression task
 def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, archetype_index=3, input_len=1, window_size=None):
@@ -77,10 +106,32 @@ def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, a
 
     print(f"x final shape: {x_final.shape}")
     print(f"y final shape: {y_final.shape}")
-    print(f"y mean: {y_final.mean()}")
-    print(f"baseline accuracy: {(np.abs(y_final - 0.15) < 0.05).sum() / y_final.shape[0]}")
 
+    print("=== BEFORE SMOOTHING ===")
+    generate_baselines(y_final, lead_time, window_size)
+    
     # apply rolling avg after selection
+    if window_size is not None and window_size > 1 and y_final.numel() > 0:
+        # compute the target times corresponding to each kept sample
+        # note: the y value was targets[t + lead_time], so index into time is t + lead_time
+        target_indices = kept_time_indices + lead_time
+        target_times_selected = time[target_indices]
+
+        # find breaks where consecutive selected target times are not consecutive days
+        # we treat day-step as 1 day; convert diff to integer days
+        time_deltas = np.diff(target_times_selected).astype('timedelta64[D]').astype(int)
+        breaks = np.where(time_deltas != 1)[0] + 1  # break positions in the selected sequence
+
+        # segment boundaries (start inclusive, end exclusive)
+        segment_starts = np.concatenate(([0], breaks))
+        segment_ends = np.concatenate((breaks, [len(y_final)]))
+
+        # print(segment_starts)
+
+        y_vals = y_final.numpy().astype(float)  # work in numpy for cumsum
+        y_smoothed = np.empty_like(y_vals)
+
+        # apply rolling avg after selection
     if window_size is not None and window_size > 1 and y_final.numel() > 0:
         # compute the target times corresponding to each kept sample
         # note: the y value was targets[t + lead_time], so index into time is t + lead_time
@@ -133,10 +184,13 @@ def construct_targets_and_interpolate(x_np, stream_ds, S_PCHA_path, lead_time, a
 
         # replace y_final with smoothed values (convert back to torch tensor)
         y_final = torch.tensor(y_smoothed, dtype=torch.float)
+        
+        print("=== AFTER SMOOTHING ===")
+        generate_baselines(y_final, lead_time, window_size)
 
-        print(f"y final shape: {y_final.shape}")
-        print(f"y mean: {y_final.mean()}")
-        print(f"baseline accuracy: {(np.abs(y_final - 0.15) < 0.05).sum() / y_final.shape[0]}")
+        # print(f"y final shape: {y_final.shape}")
+        # print(f"y mean: {y_final.mean()}")
+        # print(f"baseline accuracy: {(np.abs(y_final - 0.15) < 0.05).sum() / y_final.shape[0]}")
 
     return x_final, y_final, kept_time_indices
 
@@ -287,4 +341,92 @@ def construct_targets_and_interpolate_old(dataset_comb, S_PCHA_path, lead_time, 
     y_final = torch.tensor(y_list, dtype=torch.long)
 
     return x_final, y_final, kept_time_indices
+"""
+""" NEW ROLLING AVG
+
+        half = window_size // 2
+
+        for start, end in zip(segment_starts, segment_ends):
+            seg = y_vals[start:end]
+            n = len(seg)
+            if n == 0:
+                continue
+
+            out = np.empty_like(seg)
+
+            for i in range(n):
+                # maximum symmetric radius allowed by:
+                # - window size
+                # - segment boundaries
+                k = min(
+                    half,
+                    i,              # left boundary
+                    n - 1 - i       # right boundary
+                )
+
+                left = i - k
+                right = i + k + 1  # python slicing is exclusive on right
+                out[i] = seg[left:right].mean()
+
+            # print(f"\nSEG [{start}:{end}] = {seg}\n"
+            #         f" idx start     : {seg[0]} -> {out[0]}\n"
+            #         f" idx start+1   : {seg[1]} -> {out[1]}\n"
+            #         f" idx start+8   : {seg[8] if len(seg) > 8 else 'NA'} -> {out[8] if len(seg) > 8 else 'NA'}\n"
+            #         f" idx end-3     : {seg[-3] if len(seg) >= 3 else 'NA'} -> {out[-3] if len(seg) >= 3 else 'NA'}")
+
+            y_smoothed[start:end] = out
+
+
+"""
+""" OLD ROLLING AVG
+    # apply rolling avg after selection
+    if window_size is not None and window_size > 1 and y_final.numel() > 0:
+        # compute the target times corresponding to each kept sample
+        # note: the y value was targets[t + lead_time], so index into time is t + lead_time
+        target_indices = kept_time_indices + lead_time
+        target_times_selected = time[target_indices]
+
+        # find breaks where consecutive selected target times are not consecutive days
+        # we treat day-step as 1 day; convert diff to integer days
+        time_deltas = np.diff(target_times_selected).astype('timedelta64[D]').astype(int)
+        breaks = np.where(time_deltas != 1)[0] + 1  # break positions in the selected sequence
+
+        # segment boundaries (start inclusive, end exclusive)
+        segment_starts = np.concatenate(([0], breaks))
+        segment_ends = np.concatenate((breaks, [len(y_final)]))
+
+        print(segment_starts)
+
+        y_vals = y_final.numpy().astype(float)  # work in numpy for cumsum
+        y_smoothed = np.empty_like(y_vals)
+
+        for start, end in zip(segment_starts, segment_ends):
+            seg = y_vals[start:end]
+            n = len(seg)
+            if n == 0:
+                continue
+
+            # fast cumulative-sum based rolling:
+            # sum[i] = sum_{0..i} seg[j]
+            sums = np.cumsum(seg, dtype=float)
+
+            # counts for each position: min(i+1, window_size)
+            # sums for i < window_size: sums[i]
+            # sums for i >= window_size: sums[i] - sums[i-window_size]
+            out = np.empty_like(seg)
+
+            # vectorized handling:
+            if n <= window_size:
+                # for all indices here, we average over available history (1..i+1)
+                counts = np.arange(1, n + 1)
+                out = sums / counts
+            else:
+                # first window_size entries averaged over fewer elements
+                counts_head = np.arange(1, window_size + 1)
+                out[:window_size] = sums[:window_size] / counts_head
+                # remaining entries: sliding window of fixed size
+                sums_tail = sums[window_size:] - sums[:-window_size]
+                out[window_size:] = sums_tail / window_size
+
+            y_smoothed[start:end] = out
 """

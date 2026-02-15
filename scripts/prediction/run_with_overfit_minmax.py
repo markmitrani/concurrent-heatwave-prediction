@@ -84,7 +84,7 @@ def main():
 
     # Optimizer parameters
     # adam_lr = 5e-4
-    adamw_lr = 5e-4
+    adamw_lr = 5e-5
     betas = (0.9, 0.999)
     weight_decay = 1e-4
 
@@ -101,7 +101,7 @@ def main():
 
     x_train, x_val, min_vals, max_vals = data.minmax_scale(x_train, x_val)
 
-    train_loader, val_loader = data.get_dataloaders(x_train[:64], y_train[:64], x_train[:64], y_train[:64], batch_size)
+    train_loader, val_loader = data.get_dataloaders(x_train[:256], y_train[:256], x_train[:256], y_train[:256], batch_size)
 
     # train_loader=train_loader[:100]
     # val_loader=val_loader[:100]
@@ -110,7 +110,7 @@ def main():
     pretrained_checkpoint_url = "https://earthformer.s3.amazonaws.com/pretrained_checkpoints/earthformer_earthnet2021.pt"
     save_dir = "pretrained/"
 
-    EFCmodel, compatible = model.build_full_model(num_classes, input_len, earthformer_config, pretrained_checkpoint_url, save_dir=None)
+    EFCmodel, compatible = model.build_full_model(num_classes, input_len, lead_time, earthformer_config, pretrained_checkpoint_url, save_dir=None)
 
     # test_model = nn.Sequential(
     #     nn.Flatten(),
@@ -142,7 +142,7 @@ def main():
                 optimizer.zero_grad()
                 logits = EFCmodel(batch_x)
 
-                loss = criterion(logits.squeeze(), batch_y)
+                loss = torch.sqrt(criterion(logits.squeeze(), batch_y))
 
                 loss.backward()
                 optimizer.step()
@@ -175,7 +175,7 @@ def main():
                 logits = EFCmodel(batch_x)
                 preds = logits.squeeze()
 
-                loss = criterion(preds, batch_y)
+                loss = torch.sqrt(criterion(preds, batch_y))
                 total_val_loss += loss.item()
 
                 all_preds.append(logits.squeeze().cpu())

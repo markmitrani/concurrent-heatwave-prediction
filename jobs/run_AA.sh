@@ -19,7 +19,7 @@ source "${REPO_DIR}/config.env"
 cp "${REPO_DIR}${SCRIPT_AA_DIR}/${AA_SCRIPT}" $TMPDIR
 
 # Copy previously saved svd.hdf5 to temp
-cp "${REPO_DIR}${DATA_DIR}/${SVD_FILE}" $TMPDIR
+cp "${REPO_DIR}${DATA_DIR_OUT}/${SVD_FILE}" $TMPDIR
 
 # Move to temp space
 cd $TMPDIR
@@ -28,6 +28,6 @@ cd $TMPDIR
 python ${AA_SCRIPT}
 
 # Copy back outputs to home
-cp ${PCHA_FILE} ${REPO_DIR}${DATA_DIR}
+cp ${PCHA_FILE} ${REPO_DIR}${DATA_DIR_OUT}/
 
-echo "Finished. Output copied to ${REPO_DIR}${DATA_DIR}"
+echo "Finished. Output copied to ${REPO_DIR}${DATA_DIR_OUT}"

@@ -32,7 +32,7 @@ def build_earthformer_model(config, input_len, checkpoint_url, save_dir = None):
     
     return model, compatible
 
-def build_full_model(num_classes, input_len, config, checkpoint_url, save_dir = None):
+def build_full_model(input_len, config, checkpoint_url, save_dir = None):
     base_model, compatible = build_earthformer_model(config, input_len, checkpoint_url, save_dir)
     # model = EarthformerClassifier(base_model, num_classes)
     model = EarthformerPredictor(base_model)
@@ -94,7 +94,11 @@ class EarthformerPredictor(nn.Module):
     # x shape after squeeze+flatten: torch.Size([10, 4096])
     # x shape after fc: torch.Size([10, 1])
     def forward(self, x):
+        # print(f"x shape: {x.shape}")
         x = self.model(x)
+        # print(f"x[-1] shape: {x[:, -1:, ...].shape}")
+        # x = x[:, -1:, ...]
+        # x = x.mean(dim=1, keepdim=True)
         x = x.permute(0, 4, 1, 2, 3)
         x = self.pool(x)
         x = x.squeeze(2).flatten(start_dim=1)

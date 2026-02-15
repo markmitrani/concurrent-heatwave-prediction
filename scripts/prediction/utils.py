@@ -79,32 +79,27 @@ def plot_pred_vs_true(pred_list, true_list, epoch, tag, output_dir = 'outputs'):
     out_dir = os.path.join(output_dir, tag)
     os.makedirs(out_dir, exist_ok=True)
 
-    # Better styling
-    
-    # plt.rcParams["font.family"] = "serif"
-    # plt.rcParams["mathtext.fontset"] = "dejavuserif"
-    # plt.rcParams['figure.dpi'] = 600
-
-    plt.figure(figsize=(5,5))
-    # plt.axis("equal")
+    plt.figure()
     plt.scatter(true_list, pred_list, alpha=0.5)
     plt.xlabel("True Participation Probability")
     plt.ylabel("Predicted Probability")
     plt.title(f"Predicted vs True (Epoch {epoch+1})")
 
     # Draw diagonal - black and dashed
-    # x_min, x_max = plt.xlim()
-    # y_min, y_max = plt.ylim()
-    # low = min(x_min, y_min)
-    # high = max(x_max, y_max)
-    # plt.plot([low, high], [low, high],
-    #          linestyle='--', color='black', linewidth=1)
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-
+    x_min, x_max = plt.xlim()
+    y_min, y_max = plt.ylim()
+    low = min(x_min, y_min)
+    high = max(x_max, y_max)
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    plt.plot([low, high], [low, high],
+             linestyle='--', color='black', linewidth=.85)
+    
+    # plt.xlim(0, 1)
+    # plt.ylim(0, 1)
     # Draw diagonal y = x across the 0–1 interval
-    plt.plot([0, 1], [0, 1],
-             linestyle='--', color='black', linewidth=0.75)
+    # plt.plot([0, 1], [0, 1],
+    #          linestyle='--', color='black', linewidth=0.75)
 
     plt.grid(True)
     plt.tight_layout()

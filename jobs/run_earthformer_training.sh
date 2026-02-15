@@ -1,15 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=earthformer_train
+#SBATCH --job-name=prior_earth
 #SBATCH --partition=ivm             
 #SBATCH --gpus=1                    # Is 1 GPU enough?
 #SBATCH --cpus-per-gpu=4            
 #SBATCH --mem-per-gpu=32G            # Allocate RAM per GPU
-#SBATCH --time=12:00:00             # Job time needs to be matched to training
+#SBATCH --time=0:15:00             # Job time needs to be matched to training
 #SBATCH --output=earthformer_training-%j.log    # Output to a log file
-
 
 module load miniconda
 conda activate jupyter_env
+
+nvidia-smi
+nvidia-smi -L
+nvidia-smi -q
 
 REPO_DIR="$HOME/concurrent-heatwave-prediction"
 

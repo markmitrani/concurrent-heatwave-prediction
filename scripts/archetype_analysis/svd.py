@@ -4,6 +4,12 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, ScalarFormatter
+from pathlib import Path
+
+style_file = Path("paper.mplstyle")
+
+if Path(style_file).is_file():
+    plt.style.use(style_file)
 
 def plot_svd(k, explained_variance_ratio, sse):
     k_vals = np.arange(1, k+1)
@@ -36,10 +42,10 @@ def plot_svd(k, explained_variance_ratio, sse):
     axs[1].grid(False)
 
     plt.tight_layout()
-    fig.savefig(f"svd_plot_{k}.png", dpi=300, bbox_inches='tight')
+    fig.savefig(f"svd_plot_{k}.png", dpi=450, bbox_inches='tight')
     plt.close(fig)
 
-filename = "lentis_stream250_JJA_2deg_101_deseason_smsub_sqrtcosw.nc"
+filename = "lentis_stream250_JJA_2deg_101_deseason_smsub_sqrtcosw_lat3060.nc"
 
 # read nc file
 ds = xr.open_dataset(filename, engine="netcdf4", chunks='auto')
@@ -69,7 +75,7 @@ print("N = number of examples")
 print(f"SVD will be performed on: {X.shape}")
 
 # perform SVD
-k = 40
+k = 80
 u, s, v = da.linalg.svd_compressed(X, k, compute=True)
 
 # check SVD outputs' shapes
@@ -81,12 +87,17 @@ print(f"\tu: {u.shape}, s: {s.shape}, v: {v.shape}")
 explained_variance = (s ** 2) / (X.shape[1] - 1)  # shape: (k,)
 total_variance = explained_variance.sum()
 
-# 2. Explained variance ratio (fraction of total variance)
-explained_variance_ratio = explained_variance / total_variance
+# Compute total variance directly from the data
+total_variance_full = X.var(axis=1).sum().compute()
+
+# Then compute explained variance ratio relative to the total variance
+explained_variance = (s ** 2) / (X.shape[1] - 1)
+explained_variance_ratio = explained_variance / total_variance_full
+
 
 # 3. SSE for rank-k approximations (sum of squared errors)
 sse = np.cumsum(explained_variance[::-1])[::-1]
-mse = sse / (X.shape[1] * X.shape[0]) # n_elements = n_samples * n_features
+mse = (sse / (X.shape[1] * X.shape[0])).compute() # n_elements = n_samples * n_features
 
 explvar = explained_variance.compute()
 evr = explained_variance_ratio.compute()
@@ -100,9 +111,10 @@ print(f"Total variance: {total}")
 print(f"Explained variance ratio: {evr}")
 print(f"Cumulative explained variance ratio: {evr_cumulative}")
 print(f"SSE: {sse}")
+print(f"MSE: {mse}")
 
 # plot results
-plot_svd(k, evr, sse)
+plot_svd(k, evr, mse)
 
 # save u, s, v to disk
 da.to_hdf5(f'svd_{k}.hdf5', {'/u': u, '/s': s, '/v': v})

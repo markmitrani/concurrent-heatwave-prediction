@@ -12,13 +12,16 @@ import matplotlib.patheffects as pe
 def main(plot_anomalies):
     repo_dir = "concurrent-heatwave-prediction"
     data_dir = os.path.join("concurrent-heatwave-prediction", "data")
-    data_dir = os.path.join(data_dir, "lat30-60")
+    # data_dir = os.path.join(data_dir, "lat30-60")
+    data_dir = os.path.join(data_dir, "final")
     plots_dir = os.path.join("concurrent-heatwave-prediction", "plots")
-    plots_dir = os.path.join(plots_dir, "lat30-60")
+    # plots_dir = os.path.join(plots_dir, "lat30-60")
+    plots_dir = os.path.join(plots_dir, "final")
 
     with h5py.File(os.path.join(data_dir, 'pcha_results_8a_0d.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         XC = f['/XC'][:]
-    with h5py.File(os.path.join(data_dir, 'svd_40.hdf5'), 'r') as f: # run from mmi393 directory or gives error
+        S_PCHA = f['/S_PCHA'][:]
+    with h5py.File(os.path.join(data_dir, 'svd_80.hdf5'), 'r') as f: # run from mmi393 directory or gives error
         u = f['/u'][:]
 
     indexes = np.load(os.path.join(data_dir, 'z_mapping.npz'))

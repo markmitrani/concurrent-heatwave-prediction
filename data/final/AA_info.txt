@@ -1,0 +1,6 @@
+Archetypal Analysis finished:
+ - XC shape: (80, 8)
+ - S shape: (8, 9200)
+ - C shape: (9200, 8)
+ - SSE: 1.1192719177602096e+21
+ - Variance explained: 0.25246539630284764

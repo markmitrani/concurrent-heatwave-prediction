@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 from py_pcha import PCHA
 
-with h5py.File('svd_40.hdf5', 'r') as f:
+with h5py.File('svd_80.hdf5', 'r') as f:
     u = f['/u'][:]    # shape (n, k)
     s = f['/s'][:]    # shape (k,)
     v = f['/v'][:]    # shape (k, m)
@@ -21,18 +21,18 @@ print(f"X_reduced shape: {X_reduced.shape}")
 # run PCHA
 n = 8
 delta = 0.0 # inflation factor for the convex hull
-best_sse = float("inf")
-best_result = None
+# best_sse = float("inf")
+# best_result = None
 
-for i in range(1000):
-    XC, S_PCHA, C, SSE, varexpl = PCHA(X_reduced, noc=n, delta=delta)
-    if i == 0:
-        print(f"First SSE: {SSE}")
-    if SSE < best_sse:
-        best_result = XC, S_PCHA, C, SSE, varexpl
-        best_sse = SSE
+# for i in range(1000):
+XC, S_PCHA, C, SSE, varexpl = PCHA(X_reduced, noc=n, delta=delta)
+    # if i == 0:
+    #     print(f"First SSE: {SSE}")
+    # if SSE < best_sse:
+    #     best_result = XC, S_PCHA, C, SSE, varexpl
+    #     best_sse = SSE
 
-XC, S_PCHA, C, SSE, varexpl = best_result
+# XC, S_PCHA, C, SSE, varexpl = best_result
 
 print("Archetypal Analysis finished:")
 print(" - XC shape:", XC.shape)
